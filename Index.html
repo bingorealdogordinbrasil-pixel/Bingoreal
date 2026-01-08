@@ -151,12 +151,12 @@
 </div>
 
 <script>
-    const API = "https://bingo-backend-89dt.onrender.com";
+    // URL ATUALIZADA DO SEU RENDER
+    const API = "https://bingoreal.onrender.com"; 
     let USER_ID = localStorage.getItem('userId');
     let segundosRestantes = 0;
     let ultimaBolaSorteada = null;
 
-    // FUNÇÃO PARA MOSTRAR A MENSAGEM PROFISSIONAL
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.innerText = msg;
@@ -232,22 +232,46 @@
         } catch(e) {}
     }
 
+    // FUNÇÃO DE GERAR PIX AJUSTADA PARA O MERCADO PAGO
     async function confirmarGerarPix() {
         const val = parseFloat(document.getElementById('valorInputManual').value);
         if (!val || val < 10) return alert("Mínimo R$ 10");
-        const res = await fetch(`${API}/gerar-pix`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId: USER_ID, valor: val }) });
-        const data = await res.json();
-        if (data.qr_code_base64) {
-            document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
-            document.getElementById('pixCopiaCola').value = data.qr_code;
-            document.getElementById('modalValor').classList.add('hidden');
-            document.getElementById('modalPix').classList.remove('hidden');
+        
+        // Pegamos o nome do usuário para simular um email (o Mercado Pago exige um email)
+        const userEmail = document.getElementById('perfilNome').innerText.replace('👤 ', '').toLowerCase() + "@bingoreal.com";
+
+        try {
+            const res = await fetch(`${API}/gerar-pix`, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ 
+                    userId: USER_ID, 
+                    valor: val,
+                    email: userEmail 
+                }) 
+            });
+            
+            const data = await res.json();
+            if (data.qr_code_base64) {
+                document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
+                document.getElementById('pixCopiaCola').value = data.qr_code;
+                document.getElementById('modalValor').classList.add('hidden');
+                document.getElementById('modalPix').classList.remove('hidden');
+            } else {
+                alert("Erro ao gerar o QR Code. Tente novamente.");
+            }
+        } catch (e) {
+            alert("Erro de conexão com o servidor.");
         }
     }
 
     async function comprarCartelas() {
         const qtd = document.getElementById('qtdCartelas').value;
-        await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) });
+        await fetch(`${API}/comprar-com-saldo`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) 
+        });
         atualizarInterface();
     }
 
@@ -260,10 +284,14 @@
         }
     }, 1000);
 
+    // INICIA O JOGO SE HOUVER UM USUÁRIO LOGADO
     if(USER_ID) {
         iniciarGrade();
         atualizarInterface();
         setInterval(atualizarInterface, 3000);
+    } else {
+        // Se não houver ID, você pode redirecionar para uma página de login
+        console.log("Usuário não logado.");
     }
 </script>
 </body>
