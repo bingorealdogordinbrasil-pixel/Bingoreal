@@ -3,183 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bingo Real - Login</title>
+    <title>Bingo Real - Oficial</title>
     <style>
         :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
-        body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; overflow-x: hidden; }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg); color: white; margin: 0; padding: 0;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
         .hidden { display: none !important; }
 
-        /* TELA DE LOGIN/CADASTRO */
-        #telaAuth {
-            position: fixed; inset: 0; background: var(--bg);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 9999; padding: 20px;
+        /* HEADER */
+        .header { 
+            width: 100%; height: 60px; background: #0f172a; 
+            display: flex; align-items: center; justify-content: space-between; 
+            padding: 0 15px; box-sizing: border-box; border-bottom: 2px solid var(--primary);
+            position: sticky; top: 0; z-index: 100;
         }
-        .auth-box {
-            background: var(--card); padding: 30px; border-radius: 15px;
-            border: 1px solid var(--primary); width: 100%; max-width: 320px; text-align: center;
-        }
-        .auth-box h2 { color: var(--primary); margin-bottom: 20px; }
-        .auth-box input {
-            width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px;
-            border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box;
-        }
-        .btn-auth {
-            width: 100%; padding: 12px; margin-top: 15px; border-radius: 8px;
-            border: none; font-weight: bold; cursor: pointer; font-size: 16px;
-        }
-        .btn-principal { background: var(--primary); color: #000; }
-        .btn-link { background: none; color: #94a3b8; font-size: 13px; text-decoration: underline; }
 
-        /* INTERFACE DO JOGO */
-        .header { position: fixed; top: 0; width: 100%; height: 60px; background: #0f172a; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; box-sizing: border-box; border-bottom: 2px solid var(--primary); z-index: 100; }
-        #jogoContent { padding-top: 80px; text-align: center; }
-        .card-pix { background: var(--card); margin: 15px; padding: 20px; border-radius: 15px; border: 1px dashed var(--primary); }
+        /* CARD DE SALDO */
+        .status-container {
+            background: var(--card); width: 90%; margin-top: 20px;
+            padding: 15px; border-radius: 12px; border: 1px solid #334155;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .saldo-txt { color: var(--success); font-size: 24px; font-weight: bold; }
+
+        /* BOTÃO DE DEPÓSITO */
+        .btn-deposit {
+            background: var(--success); color: white; border: none;
+            padding: 15px 30px; border-radius: 10px; font-weight: bold;
+            font-size: 18px; cursor: pointer; margin-top: 20px; width: 90%;
+            transition: transform 0.2s;
+        }
+        .btn-deposit:active { transform: scale(0.95); }
+
+        /* MODAL */
+        .modal { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); 
+            display: flex; align-items: center; justify-content: center; z-index: 1000; 
+        }
+        .modal-content { 
+            background: white; color: black; padding: 25px; 
+            border-radius: 20px; width: 85%; max-width: 350px; text-align: center; 
+        }
+
+        input[type="number"] {
+            width: 100%; padding: 12px; margin: 10px 0;
+            border: 1px solid #ccc; border-radius: 8px; font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        #qrImagem { width: 220px; height: 220px; margin: 15px auto; display: block; }
         
-        /* MODAL PIX */
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 5000; }
-        .modal-content { background: white; color: black; padding: 20px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; }
-        #qrImagem { width: 200px; height: 200px; margin: 10px auto; display: block; }
+        textarea {
+            width: 100%; height: 60px; font-size: 10px; 
+            background: #f1f5f9; border: 1px solid #cbd5e1;
+            padding: 5px; border-radius: 5px; resize: none;
+        }
     </style>
 </head>
 <body>
 
-<div id="telaAuth">
-    <div class="auth-box" id="boxCadastro">
-        <h2>BINGO REAL</h2>
-        <input type="text" id="regNome" placeholder="Seu Nome">
-        <input type="email" id="regEmail" placeholder="Seu E-mail">
-        <button class="btn-auth btn-principal" onclick="cadastrar()">CRIAR CONTA</button>
-        <button class="btn-auth btn-link" onclick="toggleAuth()">Já tenho ID / Entrar</button>
-    </div>
-
-    <div class="auth-box hidden" id="boxLogin">
-        <h2>ENTRAR</h2>
-        <input type="text" id="loginId" placeholder="Cole seu ID aqui">
-        <button class="btn-auth btn-principal" onclick="logar()">ACESSAR CONTA</button>
-        <button class="btn-auth btn-link" onclick="toggleAuth()">Criar nova conta</button>
-    </div>
-</div>
-
-<div id="jogoContent" class="hidden">
     <div class="header">
-        <div style="font-weight:bold; color:var(--primary);">BINGO REAL</div>
+        <div style="font-weight:bold; color:var(--primary); font-size: 20px;">BINGO REAL</div>
+        <div id="perfilNome" style="font-size: 12px; color: #94a3b8;">Carregando...</div>
+    </div>
+
+    <div class="status-container">
+        <div>
+            <div style="font-size: 12px; color: #94a3b8;">MEU SALDO</div>
+            <div id="playerSaldoStatus" class="saldo-txt">R$ 0,00</div>
+        </div>
         <div style="text-align: right;">
-            <div id="playerSaldoStatus" style="color:var(--success); font-weight:bold; font-size: 18px;">R$ 0,00</div>
-            <div id="perfilNome" style="font-size: 10px; color: #94a3b8;">...</div>
+            <div style="font-size: 10px; color: #94a3b8;">ID: <span id="userIdDisplay">...</span></div>
         </div>
     </div>
-    
-    <div class="card-pix">
-        <h3 style="margin-top:0;">💰 Adicionar Saldo</h3>
-        <input type="number" id="valorPix" placeholder="Valor (Mínimo R$ 10)" style="width: 80%; padding: 10px; border-radius: 5px; border: none; margin-bottom: 10px; text-align: center;">
-        <br>
-        <button onclick="gerarPix()" style="background:var(--success); color:white; border:none; padding:15px 30px; border-radius:10px; font-weight:bold; width: 85%;">GERAR QR CODE PIX</button>
+
+    <button class="btn-deposit" onclick="abrirModalValor()">➕ DEPOSITAR VIA PIX</button>
+
+    <div style="margin-top: 40px; color: #475569; font-size: 14px;">
+        <p>Aguardando início da rodada...</p>
     </div>
 
-    <div style="padding: 20px; color: #94a3b8; font-size: 12px;">
-        ID de Jogador: <span id="userIdDisplay">...</span>
-        <br><br>
-        <button onclick="logout()" style="color: red; background: none; border: none; text-decoration: underline;">Sair da conta</button>
+    <div id="modalValor" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Quanto deseja depositar?</h3>
+            <p style="font-size: 12px; color: #64748b;">Mínimo de R$ 10,00</p>
+            <input type="number" id="valorInputManual" placeholder="Ex: 20" min="10">
+            <button onclick="confirmarGerarPix()" style="background:var(--success); color:white; width:100%; padding:15px; border:none; border-radius:10px; font-weight:bold;">GERAR PIX AGORA</button>
+            <button onclick="fecharModais()" style="background:none; border:none; color:red; margin-top:15px; font-weight:bold;">CANCELAR</button>
+        </div>
     </div>
-</div>
 
-<div id="modalPix" class="modal hidden">
-    <div class="modal-content">
-        <h3 style="margin: 0;">Pague o PIX</h3>
-        <p style="font-size: 12px;">O saldo cai automaticamente após o pagamento.</p>
-        <img id="qrImagem" src="" alt="QR Code">
-        <textarea id="pixCopiaCola" readonly style="width: 100%; height: 50px; font-size: 10px; margin-bottom: 10px;"></textarea>
-        <button onclick="copiarPix()" style="background:#2563eb; color:white; width:100%; padding:12px; border:none; border-radius:8px; font-weight:bold;">COPIAR CÓDIGO PIX</button>
-        <button onclick="fecharModal()" style="margin-top:15px; background:none; border:none; color:red; font-weight:bold;">FECHAR</button>
+    <div id="modalPix" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Quase lá!</h3>
+            <p style="font-size: 12px;">Pague o PIX e o saldo cairá em instantes.</p>
+            <img id="qrImagem" src="" alt="QR Code PIX">
+            <textarea id="pixCopiaCola" readonly></textarea>
+            <button onclick="copiarPix()" style="background:#2563eb; color:white; width:100%; padding:12px; border:none; border-radius:10px; font-weight:bold; margin-top:10px;">COPIAR CÓDIGO PIX</button>
+            <button onclick="fecharModais()" style="background:none; border:none; color:red; margin-top:15px; font-weight:bold;">FECHAR</button>
+        </div>
     </div>
-</div>
 
-<script>
-    const API = "https://bingoreal.onrender.com";
-    let USER_ID = localStorage.getItem('userId');
+    <script>
+        const API = "https://bingoreal.onrender.com";
+        let USER_ID = localStorage.getItem('userId');
 
-    function toggleAuth() {
-        document.getElementById('boxCadastro').classList.toggle('hidden');
-        document.getElementById('boxLogin').classList.toggle('hidden');
-    }
-
-    // CADASTRO
-    async function cadastrar() {
-        const nome = document.getElementById('regNome').value;
-        const email = document.getElementById('regEmail').value;
-        if(!nome || !email) return alert("Preencha os campos!");
-
-        const res = await fetch(`${API}/criar-usuario`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: nome, email: email })
-        });
-        const user = await res.json();
-        if(user._id) { 
-            localStorage.setItem('userId', user._id); 
-            location.reload(); 
-        }
-    }
-
-    // LOGIN
-    async function logar() {
-        const id = document.getElementById('loginId').value.trim();
-        const res = await fetch(`${API}/user-data/${id}`);
-        const user = await res.json();
-        if(user._id) { 
-            localStorage.setItem('userId', user._id); 
-            location.reload(); 
-        } else { alert("ID não encontrado!"); }
-    }
-
-    // GERAR PIX
-    async function gerarPix() {
-        const valor = document.getElementById('valorPix').value;
-        if(valor < 10) return alert("Valor mínimo R$ 10,00");
-
-        try {
-            const res = await fetch(`${API}/gerar-pix`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: USER_ID, valor: valor })
-            });
-            const data = await res.json();
-            if(data.qr_code_base64) {
-                document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
-                document.getElementById('pixCopiaCola').value = data.qr_code;
-                document.getElementById('modalPix').classList.remove('hidden');
+        // 1. FUNÇÃO INICIAL: Cria o ID no MongoDB caso não exista
+        async function inicializar() {
+            if (!USER_ID) {
+                const nome = prompt("Bem-vindo ao Bingo Real! Digite seu nome para entrar:");
+                if (nome) {
+                    try {
+                        const res = await fetch(`${API}/criar-usuario`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                name: nome, 
+                                email: nome.toLowerCase().replace(/\s/g, '') + Date.now() + "@bingo.com" 
+                            })
+                        });
+                        const user = await res.json();
+                        if (user._id) {
+                            localStorage.setItem('userId', user._id);
+                            USER_ID = user._id;
+                            location.reload();
+                        }
+                    } catch (e) {
+                        alert("O servidor está acordando... tente novamente em 20 segundos.");
+                    }
+                }
+            } else {
+                document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8);
+                atualizarDados();
+                setInterval(atualizarDados, 5000); // Atualiza saldo a cada 5 segundos
             }
-        } catch(e) { alert("Erro ao gerar PIX. Verifique seu servidor!"); }
-    }
-
-    async function atualizarDados() {
-        if(!USER_ID) return;
-        const res = await fetch(`${API}/user-data/${USER_ID}`);
-        const user = await res.json();
-        document.getElementById('perfilNome').innerText = user.name.toUpperCase();
-        document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
-        document.getElementById('userIdDisplay').innerText = USER_ID;
-    }
-
-    function copiarPix() {
-        const text = document.getElementById('pixCopiaCola');
-        text.select();
-        document.execCommand('copy');
-        alert("Código Copiado!");
-    }
-
-    function fecharModal() { document.getElementById('modalPix').classList.add('hidden'); }
-    function logout() { localStorage.removeItem('userId'); location.reload(); }
-
-    window.onload = () => {
-        if(USER_ID) {
-            document.getElementById('telaAuth').classList.add('hidden');
-            document.getElementById('jogoContent').classList.remove('hidden');
-            atualizarDados();
-            setInterval(atualizarDados, 5000);
         }
-    };
-</script>
+
+        // 2. ATUALIZA SALDO E NOME
+        async function atualizarDados() {
+            try {
+                const res = await fetch(`${API}/user-data/${USER_ID}`);
+                const user = await res.json();
+                document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
+                document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
+            } catch (e) {
+                console.log("Erro ao sincronizar...");
+            }
+        }
+
+        // 3. GERA O QR CODE REAL
+        async function confirmarGerarPix() {
+            const valor = document.getElementById('valorInputManual').value;
+            if (!valor || valor < 10) return alert("O valor mínimo é R$ 10,00");
+
+            try {
+                // Abre o modal de carregamento ou troca os modais
+                const res = await fetch(`${API}/gerar-pix`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: USER_ID, valor: valor })
+                });
+                const data = await res.json();
+                
+                if (data.qr_code_base64) {
+                    document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
+                    document.getElementById('pixCopiaCola').value = data.qr_code;
+                    document.getElementById('modalValor').classList.add('hidden');
+                    document.getElementById('modalPix').classList.remove('hidden');
+                } else {
+                    alert("Erro ao comunicar com o Mercado Pago. Verifique seu Access Token.");
+                }
+            } catch (e) {
+                alert("Erro na conexão. Tente novamente.");
+            }
+        }
+
+        function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
+        function fecharModais() { 
+            document.getElementById('modalValor').classList.add('hidden'); 
+            document.getElementById('modalPix').classList.add('hidden'); 
+        }
+
+        function copiarPix() {
+            const copyText = document.getElementById("pixCopiaCola");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            alert("Código PIX copiado! Cole no seu banco.");
+        }
+
+        window.onload = inicializar;
+    </script>
 </body>
 </html>
