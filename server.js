@@ -1,15 +1,26 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
+const { MercadoPagoConfig, Payment } = require('mercadopago');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 1. CONFIGURAÇÃO MERCADO PAGO (Usando a Key que você salvou no Render)
+const client = new MercadoPagoConfig({ 
+    accessToken: process.env.MP_ACCESS_TOKEN || 'SUA_CHAVE_DE_TESTE_AQUI' 
+});
+const payment = new Payment(client);
+
+// Servir arquivos estáticos (HTML, CSS, JS) - Resolve o "Cannot GET /"
+app.use(express.static(__dirname));
+
 // CONEXÃO COM O BANCO DE DADOS
 const mongoURI = "mongodb+srv://emanntossilva_db_user:jdTfhDfvYbeSHnQH@cluster0.mxdnuqr.mongodb.net/bingo_db?retryWrites=true&w=majority&appName=Cluster0";
 
-mongoose.connect(mongoURI).then(() => console.log("Servidor de Bingo Automático Online!"));
+mongoose.connect(mongoURI).then(() => console.log("Banco de Dados Conectado!"));
 
 const User = mongoose.model('User', new mongoose.Schema({
     name: String,
@@ -24,52 +35,64 @@ let jogo = {
     bolas: [],
     fase: "acumulando", 
     premioAcumulado: 0,
-    tempoSegundos: 300 // 5 minutos para apostas
+    tempoSegundos: 300 
 };
 
 // --- MOTOR AUTOMÁTICO DO BINGO ---
 setInterval(() => {
     if (jogo.tempoSegundos > 0) {
-        // Fase de contagem regressiva (Apostas abertas)
         jogo.tempoSegundos--;
         jogo.fase = "acumulando";
     } else {
-        // O tempo acabou! Inicia o sorteio automático
         jogo.fase = "sorteio";
-        
-        // Sorteia uma bola a cada 10 segundos (se ainda não sorteou todas)
-        // Usamos o resto da divisão por 10 para disparar o sorteio
         if (jogo.bolas.length < 50 && (Math.abs(jogo.tempoSegundos) % 10 === 0)) {
             sortearBolaAutomatica();
         }
-        
-        jogo.tempoSegundos--; // Continua contando negativo para controlar o intervalo das bolas
+        jogo.tempoSegundos--; 
     }
 }, 1000);
 
 function sortearBolaAutomatica() {
     let bola;
     if (jogo.bolas.length >= 50) return;
-    
     do {
         bola = Math.floor(Math.random() * 50) + 1;
     } while (jogo.bolas.includes(bola));
-    
     jogo.bolas.push(bola);
-    console.log(`Bola sorteada automaticamente: ${bola}`);
 }
 
-// --- ROTAS PARA O HTML ---
+// --- ROTA DE PAGAMENTO PIX (MERCADO PAGO) ---
+app.post('/gerar-pix', async (req, res) => {
+    const { email, valor, userId } = req.body;
+    
+    const body = {
+        transaction_amount: Number(valor),
+        description: 'Depósito Bingo Real',
+        payment_method_id: 'pix',
+        payer: { email },
+        metadata: { user_id: userId } // Guarda o ID do usuário para dar o saldo depois
+    };
+
+    try {
+        const result = await payment.create({ body });
+        res.json({
+            qr_code: result.point_of_interaction.transaction_data.qr_code,
+            qr_code_base64: result.point_of_interaction.transaction_data.qr_code_base64,
+            id_pagamento: result.id
+        });
+    } catch (error) {
+        res.status(500).json(error);
+    }
+});
+
+// --- DEMAIS ROTAS ---
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 app.get('/game-status', (req, res) => {
     res.json(jogo);
-});
-
-app.get('/user-data/:id', async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        res.json(user);
-    } catch (e) { res.status(404).send(); }
 });
 
 app.post('/comprar-com-saldo', async (req, res) => {
@@ -87,7 +110,7 @@ app.post('/comprar-com-saldo', async (req, res) => {
                 let n = Math.floor(Math.random() * 50) + 1;
                 if (!nums.includes(n)) nums.push(n);
             }
-            novasCartelas.sort((a, b) => a - b);
+            nums.sort((a, b) => a - b);
             novasCartelas.push(nums);
         }
 
@@ -103,34 +126,15 @@ app.post('/comprar-com-saldo', async (req, res) => {
     }
 });
 
-// --- ROTAS DO GERENTE ---
-
-app.post('/admin/add-saldo', async (req, res) => {
-    const { userId, valor } = req.body;
-    await User.findByIdAndUpdate(userId, { $inc: { saldo: valor } });
-    res.json({ success: true });
-});
-
-app.get('/admin/users', async (req, res) => {
-    res.json(await User.find());
-});
-
-app.post('/admin/reset', async (req, res) => {
-    jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300 };
-    // Limpa as cartelas de todos os usuários para a nova rodada
-    await User.updateMany({}, { cartelas: [] });
-    res.json({ success: true });
-});
-
 // AUTH
 app.post('/register', async (req, res) => {
     try { const u = new User(req.body); await u.save(); res.status(201).json(u); }
-    catch (e) { res.status(400).json({message: "Erro"}); }
+    catch (e) { res.status(400).json({message: "Erro ao registrar"}); }
 });
 
 app.post('/login', async (req, res) => {
     const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
-    if(u) res.json(u); else res.status(401).json({message: "Erro"});
+    if(u) res.json(u); else res.status(401).json({message: "Login inválido"});
 });
 
 const PORT = process.env.PORT || 10000;
