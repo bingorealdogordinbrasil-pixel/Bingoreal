@@ -9,46 +9,42 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '.')));
 
-// Conexão com o Mercado Pago
+// Conecta ao Mercado Pago com o seu Token do Render
 const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
 const payment = new Payment(client);
 
-// Conexão com seu MongoDB
+// Conecta ao MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("Bingo Conectado ao MongoDB!"))
-  .catch(err => console.error("Erro ao conectar MongoDB:", err));
+  .then(() => console.log("Bingo Conectado!"))
+  .catch(err => console.error("Erro Banco:", err));
 
-// Modelo de Usuário
+// Modelo do Jogador
 const User = mongoose.model('User', new mongoose.Schema({
     name: String,
     email: { type: String, unique: true },
     saldo: { type: Number, default: 0 }
 }));
 
-// ROTA: Criar Usuário (Resolve o problema do banco vazio)
+// ROTA: Cria o usuário se não existir (Resolve o banco vazio)
 app.post('/criar-usuario', async (req, res) => {
     try {
         let user = await User.findOne({ email: req.body.email });
         if (!user) user = await User.create(req.body);
         res.json(user);
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ROTA: Carregar dados do usuário
+// ROTA: Busca dados do usuário
 app.get('/user-data/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
-        res.json(user);
-    } catch (e) {
-        res.status(404).json({ error: "Usuário não encontrado" });
-    }
+        res.json(user || {});
+    } catch (e) { res.status(404).json({ error: "Não encontrado" }); }
 });
 
-// ROTA: Gerar PIX (Corrigida para seu e-mail emanntossilva@gmail.com)
+// ROTA: GERAR PIX (CORRIGIDA)
 app.post('/gerar-pix', async (req, res) => {
-    const { email, valor, userId } = req.body;
+    const { valor, userId } = req.body;
     try {
         const response = await payment.create({
             body: {
@@ -56,9 +52,7 @@ app.post('/gerar-pix', async (req, res) => {
                 description: 'Deposito Bingo Real',
                 payment_method_id: 'pix',
                 payer: { 
-                    email: email === "emanntossilva@gmail.com" ? "comprador@teste.com" : email,
-                    first_name: "Jogador",
-                    last_name: "Bingo"
+                    email: "comprador_aleatorio@gmail.com" // Email fake para não bloquear você
                 },
                 metadata: { user_id: userId }
             }
@@ -68,12 +62,12 @@ app.post('/gerar-pix', async (req, res) => {
             qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64
         });
     } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: "Erro no Mercado Pago" });
+        console.error("Erro MP:", e);
+        res.status(500).json({ error: "Falha ao gerar PIX" });
     }
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("Servidor rodando!"));
+app.listen(PORT, () => console.log("Servidor Online"));
