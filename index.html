@@ -13,9 +13,7 @@
         }
 
         .hidden { display: none !important; }
-
         #telaJogo { display: flex; flex-direction: column; height: 100vh; width: 100%; }
-
         .secao-fixa { flex-shrink: 0; z-index: 10; background: var(--bg); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
         #listaCartelas { 
@@ -33,9 +31,10 @@
         .rank-nome { color: #94a3b8; }
         .rank-pts { color: var(--primary); font-weight: bold; }
 
-        .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 110px; margin-bottom: 8px; transition: transform 0.3s; position: relative; }
-        .cartela.top-user { border: 2px solid var(--primary); box-shadow: 0 0 8px rgba(250, 204, 21, 0.4); }
-        .badge-pts { background: var(--primary); color: #000; font-size: 8px; font-weight: bold; padding: 1px 4px; border-radius: 3px; display: block; text-align: center; margin-bottom: 3px; }
+        /* AJUSTE PARA 8 NÚMEROS (4x2) */
+        .cartela { background: #f8fafc; color: #1e293b; padding: 6px; border-radius: 6px; width: 130px; margin-bottom: 8px; transition: transform 0.3s; position: relative; }
+        .cartela.top-user { border: 2px solid var(--primary); box-shadow: 0 0 10px rgba(250, 204, 21, 0.5); }
+        .badge-pts { background: var(--primary); color: #000; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 3px; display: block; text-align: center; margin-bottom: 5px; }
 
         .auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
         .auth-box { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid var(--primary); width: 100%; max-width: 320px; }
@@ -63,7 +62,6 @@
         
         .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px auto; max-width: 360px; box-sizing: border-box; }
         .layout-jogo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 5px; }
-        
         .bola-sorteada-master { width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; color: #000; border: 2px solid #78350f; flex-shrink: 0; }
         .girando { animation: flashBola 0.4s ease-out; }
         @keyframes flashBola { 0% { transform: scale(0.6) rotate(-45deg); opacity: 0.5; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
@@ -74,10 +72,10 @@
         
         .caixa-premio { background: #064e3b; border: 1px solid var(--success); padding: 8px; border-radius: 8px; margin-bottom: 5px; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; }
-        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         
-        .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; }
-        .num-c { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 4px 0; display: flex; align-items: center; justify-content: center; text-align: center; }
+        /* GRID PARA 8 NÚMEROS */
+        .grid-cartela { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+        .num-c { font-size: 11px; font-weight: bold; background: #e2e8f0; padding: 6px 0; display: flex; align-items: center; justify-content: center; text-align: center; border-radius: 3px; }
         .marcado { background: var(--success) !important; color: white !important; }
         
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
@@ -136,7 +134,7 @@
         </div>
 
         <div class="ranking-global">
-            <div style="color:var(--primary); font-weight:bold; font-size:10px; text-align:center; margin-bottom:5px;">🏆 TOP 10 GLOBAL (MAIS PERTO DO BINGO)</div>
+            <div style="color:var(--primary); font-weight:bold; font-size:10px; text-align:center; margin-bottom:5px;">🏆 TOP 10 GLOBAL (FALTAM PARA O BINGO)</div>
             <div id="rankingGlobalLista">
                 <div style="text-align:center; color:#475569;">Aguardando início...</div>
             </div>
@@ -152,7 +150,7 @@
             </div>
         </div>
         
-        <div style="background: #0f172a; padding: 6px; font-size: 11px; color: var(--primary); font-weight: bold; text-align: center; border-bottom: 1px solid #334155;">MINHAS CARTELAS</div>
+        <div style="background: #0f172a; padding: 6px; font-size: 11px; color: var(--primary); font-weight: bold; text-align: center; border-bottom: 1px solid #334155;">MINHAS CARTELAS (8 NÚMEROS)</div>
     </div>
 
     <div id="listaCartelas"></div>
@@ -214,12 +212,13 @@
         if(res.ok) { const user = await res.json(); localStorage.setItem('userId', user._id); location.reload(); }
     }
 
+    // LÓGICA DE GERAÇÃO COM 8 NÚMEROS E SEM SEGUIDOS
+    // Obs: O ideal é que o servidor faça isso, mas aqui a interface processa a exibição.
     async function atualizarInterface() {
         if(!USER_ID) return;
         try {
             const resStatus = await fetch(`${API}/game-status`);
             const jogo = await resStatus.json();
-            
             const resUser = await fetch(`${API}/user-data/${USER_ID}`);
             const user = await resUser.json();
 
@@ -229,14 +228,11 @@
             segundosRestantes = jogo.tempoSegundos || 0;
 
             const painel = document.getElementById('painelPremio');
-            // LÓGICA DE OCULTAÇÃO DO VALOR DURANTE O ACUMULO
             if (jogo.fase === 'finalizado' && jogo.ganhador) {
                 painel.innerHTML = `<div style="background: #facc15; color: #000; padding: 5px; border-radius: 8px; width: 100%; animation: flashBola 0.5s infinite alternate;"><div style="font-weight:bold; font-size:12px;">🏆 VENCEDOR: ${jogo.ganhador.toUpperCase()}</div><div style="font-size:14px; font-weight:900;">PRÊMIO: R$ ${jogo.premioAcumulado.toFixed(2)}</div></div>`;
             } else if (jogo.fase === 'acumulando') {
-                // AQUI O VALOR FICA ESCONDIDO
                 painel.innerHTML = `<div class="status-acumulando">💰 ACUMULANDO PRÊMIO...</div>`;
             } else {
-                // O VALOR SÓ APARECE QUANDO O JOGO COMEÇA
                 painel.innerHTML = `<div style="font-size:10px; color:var(--success); font-weight:bold;">🏆 PRÊMIO EM JOGO:</div><div style="font-size:20px; font-weight:900;">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
             }
 
@@ -263,7 +259,7 @@
                 rLista.innerHTML = rankingGlobal.slice(0, 10).map((r, i) => `
                     <div class="rank-item">
                         <span class="rank-nome">${i+1}º ${r.nome.split(' ')[0]}</span>
-                        <span class="rank-pts">Faltam ${15 - r.acertos}</span>
+                        <span class="rank-pts">Faltam ${8 - r.acertos}</span> 
                     </div>
                 `).join('');
             } else {
@@ -279,8 +275,8 @@
 
             document.getElementById('listaCartelas').innerHTML = minhasCartelas.map((c, idx) => `
                 <div class="cartela ${idx < 10 && c.acertos > 0 ? 'top-user' : ''}">
-                    ${c.acertos > 0 ? `<span class="badge-pts">${c.acertos} ACERTOS</span>` : ''}
-                    <div class="grid-cartela">${c.numeros.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div>
+                    ${c.acertos > 0 ? `<span class="badge-pts">${c.acertos} / 8 ACERTOS</span>` : ''}
+                    <div class="grid-cartela">${c.numeros.slice(0,8).map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div>
                 </div>
             `).join('');
 
