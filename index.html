@@ -20,11 +20,14 @@
         .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; box-sizing: border-box; }
         .menu-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
         .menu-btn div { width: 20px; height: 2px; background: white; border-radius: 2px; }
-        .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; align-items: center; }
-        .status-item { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #334155; }
-        .status-item:last-child { border-right: none; }
-        .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
-        .status-val { font-size: 12px; font-weight: bold; }
+        
+        /* STATUS BAR */
+        .status-bar-topo { display: grid; grid-template-columns: repeat(4, 1fr); background: #1e293b; padding: 8px 2px; border-bottom: 1px solid #334155; align-items: center; }
+        .status-item { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #334155; cursor: default; }
+        .status-item:last-child { border-right: none; cursor: pointer; } /* Clique no ID */
+        .status-item:last-child:active { background: #334155; }
+        .status-label { font-size: 7px; color: #94a3b8; text-transform: uppercase; font-weight: bold; pointer-events: none; }
+        .status-val { font-size: 11px; font-weight: bold; pointer-events: none; }
         
         .caixa-premio { background: var(--gold); background-size: 200% 200%; animation: brilhoDourado 3s linear infinite; border: 2px solid #fff; padding: 12px; border-radius: 10px; margin: 5px auto; max-width: 95%; min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); color: #000; }
         @keyframes brilhoDourado { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
@@ -89,7 +92,11 @@
     <div class="status-bar-topo">
         <div class="status-item"><span class="status-label">Tempo</span><span id="timerTxt" class="status-val" style="color:var(--primary);">--:--</span></div>
         <div class="status-item"><span class="status-label">Saldo</span><span id="playerSaldoStatus" class="status-val" style="color:var(--success);">R$ 0,00</span></div>
-        <div class="status-item"><span class="status-label">ID</span><span id="userIdDisplay" class="status-val" style="font-size:10px;">...</span></div>
+        <div class="status-item"><span class="status-label">Cartelas</span><span id="countCartelas" class="status-val" style="color:white;">0</span></div>
+        <div class="status-item" onclick="copiarID()">
+            <span class="status-label">ID (Copiar)</span>
+            <span id="userIdDisplay" class="status-val" style="font-size:10px;">...</span>
+        </div>
     </div>
 
     <div style="background: #0f172a; padding: 10px; border-bottom: 1px solid #334155; display: flex; gap: 6px; justify-content: center;">
@@ -147,22 +154,17 @@
     function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2000); }
 
+    // NOVA FUNÇÃO PARA COPIAR ID
+    function copiarID() { if(USER_ID) { navigator.clipboard.writeText(USER_ID); showToast("ID Copiado!"); } }
+
     async function executarLogin() {
         const email = document.getElementById('loginEmail').value;
         const senha = document.getElementById('loginSenha').value;
         if(!email || !senha) return alert("Preencha tudo!");
-
         try {
-            const res = await fetch(`${API}/login`, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ email, senha })
-            });
-            if(res.ok) { 
-                const user = await res.json(); 
-                localStorage.setItem('userId', user._id); 
-                location.reload(); 
-            } else { alert("Login ou senha incorretos!"); }
+            const res = await fetch(`${API}/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email, senha }) });
+            if(res.ok) { const user = await res.json(); localStorage.setItem('userId', user._id); location.reload(); }
+            else { alert("Login ou senha incorretos!"); }
         } catch(e) { alert("Erro ao conectar no servidor!"); }
     }
 
@@ -171,18 +173,10 @@
         const email = document.getElementById('regEmail').value;
         const senha = document.getElementById('regSenha').value;
         if(!name || !email || !senha) return alert("Preencha tudo!");
-
         try {
-            const res = await fetch(`${API}/register`, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ name, email, senha })
-            });
-            if(res.ok) { 
-                const user = await res.json(); 
-                localStorage.setItem('userId', user._id); 
-                location.reload(); 
-            } else { alert("Erro no cadastro!"); }
+            const res = await fetch(`${API}/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, email, senha }) });
+            if(res.ok) { const user = await res.json(); localStorage.setItem('userId', user._id); location.reload(); }
+            else { alert("Erro no cadastro!"); }
         } catch(e) { alert("Erro ao conectar no servidor!"); }
     }
 
@@ -197,6 +191,9 @@
             document.getElementById('perfilNome').innerText = user.name.toUpperCase();
             document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
             document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8);
+            
+            const totalCartelas = user.cartelas ? user.cartelas.length : 0;
+            document.getElementById('countCartelas').innerText = totalCartelas;
             
             const painel = document.getElementById('painelPremio');
             if (jogo.fase === "acumulando") {
@@ -213,7 +210,6 @@
                 else el.classList.remove('ativo');
             });
             
-            // GARANTE APENAS 8 NÚMEROS NA CARTELA
             document.getElementById('listaCartelas').innerHTML = (user.cartelas || []).map(c => {
                 const cartelaOito = c.slice(0, 8);
                 return `<div class="cartela"><div class="grid-cartela">${cartelaOito.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div></div>`;
@@ -225,11 +221,7 @@
     async function comprarCartelas() {
         const qtd = parseInt(document.getElementById('qtdCartelas').value);
         if (isNaN(qtd) || qtd < 1) return;
-        const res = await fetch(`${API}/comprar-com-saldo`, { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) 
-        });
+        const res = await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) });
         if(res.ok) atualizarInterface();
         else alert("Saldo insuficiente!");
     }
