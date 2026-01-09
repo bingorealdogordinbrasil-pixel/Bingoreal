@@ -16,7 +16,7 @@
         .auth-box input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; font-size: 16px; }
         .auth-btn { width: 100%; padding: 14px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
         
-        /* JOGO STYLES */
+        /* HEADER E STATUS */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; box-sizing: border-box; }
         .menu-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
         .menu-btn div { width: 20px; height: 2px; background: white; border-radius: 2px; }
@@ -27,20 +27,41 @@
         .status-label { font-size: 7px; color: #94a3b8; text-transform: uppercase; font-weight: bold; pointer-events: none; }
         .status-val { font-size: 11px; font-weight: bold; pointer-events: none; }
         
+        /* PAINEL DE PREMIO */
         .caixa-premio { background: var(--gold); background-size: 200% 200%; animation: brilhoDourado 3s linear infinite; border: 2px solid #fff; padding: 12px; border-radius: 10px; margin: 5px auto; max-width: 95%; min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); color: #000; }
         @keyframes brilhoDourado { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         .status-acumulando-texto { font-size: 20px; font-weight: 900; animation: piscar 1.2s infinite; text-transform: uppercase; }
         @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-        /* MODAL GANHADOR */
-        .modal-ganhador { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--gold); color: #000; padding: 25px; border-radius: 20px; border: 5px solid #fff; z-index: 10000; text-align: center; box-shadow: 0 0 50px rgba(0,0,0,0.8); width: 80%; max-width: 280px; }
-
-        #listaCartelas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 10px; background: var(--bg); height: calc(100vh - 350px); overflow-y: auto; }
-        .cartela { background: #f8fafc; color: #1e293b; padding: 8px; border-radius: 6px; width: 130px; }
-        .grid-cartela { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
-        .num-c { font-size: 11px; font-weight: bold; background: #e2e8f0; padding: 6px 0; border-radius: 2px; }
-        .marcado { background: var(--success) !important; color: white !important; }
+        /* LISTA DE CARTELAS - AJUSTE DO FUNDO BRANCO */
+        #listaCartelas { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; padding: 15px; background: var(--bg); height: calc(100vh - 350px); overflow-y: auto; }
         
+        .cartela { 
+            background: #ffffff; 
+            color: #1e293b; 
+            padding: 10px; 
+            border-radius: 8px; 
+            width: 140px; /* Largura fixa para não esticar */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            flex-grow: 0; /* Impede que ela cresça além do necessário */
+        }
+        
+        .grid-cartela { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        
+        .num-c { 
+            font-size: 12px; 
+            font-weight: 800; 
+            background: #f1f5f9; 
+            padding: 8px 0; 
+            border-radius: 4px; 
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .marcado { background: var(--success) !important; color: white !important; border-color: var(--success) !important; }
+        
+        /* RESTANTE DOS ESTILOS */
         .card { background: var(--card); padding: 10px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px; box-sizing: border-box; }
         .bola-sorteada-master { width: 65px; height: 65px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; color: #000; border: 2px solid #78350f; flex-shrink: 0; }
         .painel-numeros { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #0f172a; padding: 4px; border-radius: 6px; flex: 1; }
@@ -50,6 +71,7 @@
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
         .modal-content { background: white; padding: 15px; border-radius: 12px; color: black; width: 80%; max-width: 280px; text-align: center; }
         .btn-atalho-valor { padding: 8px; border: 1px solid #2563eb; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: bold; margin: 2px; cursor: pointer; }
+        .modal-ganhador { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--gold); color: #000; padding: 25px; border-radius: 20px; border: 5px solid #fff; z-index: 10000; text-align: center; box-shadow: 0 0 50px rgba(0,0,0,0.8); width: 80%; max-width: 280px; }
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #0f172a; color: var(--primary); padding: 10px 20px; border-radius: 50px; border: 1px solid var(--primary); z-index: 10000; display: none; font-weight: bold; }
     </style>
 </head>
@@ -192,15 +214,13 @@
             document.getElementById('countCartelas').innerText = user.cartelas ? user.cartelas.length : 0;
             
             const painel = document.getElementById('painelPremio');
-            // REGRA: SÓ REVELA O VALOR SE O SORTEIO COMEÇAR (FASE != ACUMULANDO)
             if (jogo.fase !== "acumulando") {
                 painel.innerHTML = `<div style="font-size:10px; font-weight:bold;">🏆 PRÊMIO LIBERADO:</div><div style="font-size:24px; font-weight:900;">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
             } else {
                 painel.innerHTML = `<div class="status-acumulando-texto">ACUMULANDO...</div>`;
-                avisoGanhadorExibido = false; // Reseta trava para o próximo jogo
+                avisoGanhadorExibido = false; 
             }
 
-            // LÓGICA DO GANHADOR (Aparece 5 segundos)
             if (jogo.ganhador && !avisoGanhadorExibido) {
                 mostrarAvisoVitoria(jogo.ganhador, jogo.valorGanho || jogo.premioAcumulado);
                 avisoGanhadorExibido = true;
@@ -215,8 +235,12 @@
             });
             
             document.getElementById('listaCartelas').innerHTML = (user.cartelas || []).map(c => {
-                const cartelaOito = c.slice(0, 8);
-                return `<div class="cartela"><div class="grid-cartela">${cartelaOito.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div></div>`;
+                const cartelaExibicao = c.slice(0, 8); // Pega os 8 números
+                return `<div class="cartela">
+                    <div class="grid-cartela">
+                        ${cartelaExibicao.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}
+                    </div>
+                </div>`;
             }).join('');
             segundosRestantes = jogo.tempoSegundos || 0;
         } catch(e) {}
