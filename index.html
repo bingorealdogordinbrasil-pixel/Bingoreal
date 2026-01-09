@@ -6,211 +6,98 @@
     <title>Bingo Real - Oficial</title>
     <style>
         :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
-        
-        html, body { 
-            overflow: hidden; height: 100%; position: fixed; width: 100%;
-            font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; 
-        }
+        body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; text-align: center; overflow-x: hidden; }
         .hidden { display: none !important; }
-
-        /* TOAST NOTIFICAÇÃO */
-        #toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.95); color: var(--primary);
-            padding: 12px 24px; border-radius: 50px; border: 1px solid var(--primary);
-            font-size: 13px; font-weight: bold; z-index: 10000; display: none;
-        }
-
-        /* TELA DE LOGIN / CADASTRO */
-        #telaAcesso {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; background: var(--bg); padding: 20px; box-sizing: border-box;
-            z-index: 9999; position: relative;
-        }
-        .auth-card {
-            background: var(--card); padding: 30px; border-radius: 15px; border: 1px solid var(--primary);
-            width: 100%; max-width: 350px;
-        }
-        .auth-card input {
-            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px;
-            border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box;
-        }
-        .btn-auth {
-            background: var(--primary); color: #000; border: none; width: 100%;
-            padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer;
-        }
-
-        /* HEADER E STATUS */
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; }
-        .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; }
-        .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; }
-        .status-val { font-size: 12px; font-weight: bold; }
-
-        /* PAINEL DE SORTEIO */
-        .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px auto; max-width: 360px; }
-        .layout-jogo { display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .bola-sorteada-master { 
-            width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-            font-size: 30px; font-weight: 900; color: #000; border: 2px solid #78350f;
-        }
-
-        .painel-numeros { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #0f172a; padding: 4px; border-radius: 6px; flex: 1; }
-        .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 2px; }
-        .num-check.ativo { background: var(--success); color: white; }
-
-        .caixa-premio { background: #064e3b; border: 1px solid var(--success); padding: 8px; border-radius: 8px; margin-bottom: 5px; }
-        .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; }
-        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        /* MODAIS */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10001; }
-        .modal-content { background: white; padding: 20px; border-radius: 12px; color: black; width: 85%; max-width: 300px; text-align: center; }
-        .btn-valor { padding: 10px; border: 1px solid #2563eb; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: bold; cursor: pointer; margin: 2px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #0f172a; border-bottom: 2px solid var(--primary); }
+        .btn-pix { background: var(--success); color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .card { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--primary); margin: 10px; }
+        .bola-master { width: 80px; height: 80px; background: radial-gradient(circle, #fff, #facc15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #000; margin: 10px auto; border: 3px solid #78350f; font-weight: bold; }
+        .grade { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; padding: 5px; background: #000; border-radius: 5px; }
+        .num { font-size: 10px; background: #1e293b; padding: 5px; border-radius: 2px; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 999; }
+        .modal-content { background: white; padding: 20px; border-radius: 10px; color: #000; width: 80%; max-width: 300px; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        .btn-auth { background: var(--primary); color: #000; border: none; padding: 15px; width: 100%; border-radius: 5px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="toast">Copiado!</div>
-
 <div id="telaAcesso">
-    <div class="auth-card">
-        <h2 id="authTitulo">BINGO REAL</h2>
+    <div style="padding: 50px 20px;">
+        <h2 style="color:var(--primary)">BINGO REAL</h2>
         <div id="campoNome" class="hidden"><input type="text" id="inputNome" placeholder="Seu Nome"></div>
-        <input type="email" id="inputEmail" placeholder="Seu melhor E-mail">
-        <input type="password" id="inputSenha" placeholder="Senha segura">
-        <button class="btn-auth" onclick="autenticar()">ACESSAR BINGO</button>
-        <p style="margin-top:20px; font-size:12px; cursor:pointer;" onclick="alternarModo()">Ainda não tem conta? <span style="color:var(--primary)">Cadastre-se grátis</span></p>
+        <input type="email" id="inputEmail" placeholder="E-mail">
+        <input type="password" id="inputSenha" placeholder="Senha">
+        <button class="btn-auth" onclick="autenticar()">ENTRAR NO JOGO</button>
+        <p onclick="modoCadastro = !modoCadastro; document.getElementById('campoNome').classList.toggle('hidden')" style="cursor:pointer; font-size:14px; margin-top:20px;">Não tem conta? <span style="color:var(--primary)">Cadastre-se</span></p>
     </div>
 </div>
 
 <div id="telaJogo" class="hidden">
     <div class="header">
-        <div style="font-weight:bold; color:var(--primary);">BINGO REAL</div>
-        <button onclick="abrirModalValor()" style="background:var(--success); color:white; border:none; padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer;">DEPOSITAR PIX</button>
+        <span style="font-weight:bold; color:var(--primary)">BINGO REAL</span>
+        <button class="btn-pix" onclick="document.getElementById('modalPix').classList.remove('hidden')">PIX</button>
     </div>
-
-    <div class="status-bar-topo">
-        <div class="status-item"><span class="status-label">Tempo</span><span id="timerTxt" class="status-val">--:--</span></div>
-        <div class="status-item"><span class="status-label">Saldo</span><span id="saldoTxt" class="status-val" style="color:var(--success);">R$ 0,00</span></div>
-        <div class="status-item" onclick="copiarID()" style="cursor:pointer;"><span class="status-label">ID</span><span id="idTxt" class="status-val">...</span></div>
+    <div style="display: flex; justify-content: space-around; padding: 10px; background: #1e293b; font-size: 12px;">
+        <span>Saldo: <b id="saldoTxt" style="color:var(--success)">R$ 0,00</b></span>
+        <span>ID: <b id="idTxt">...</b></span>
     </div>
-
-    <div class="card" style="margin-top:10px;">
-        <div class="caixa-premio"><div class="status-acumulando">PREMIAÇÃO ACUMULANDO...</div></div>
-        <div class="layout-jogo">
-            <div id="bolaGrande" class="bola-sorteada-master">--</div>
-            <div class="painel-numeros" id="gradeNumeros"></div>
-        </div>
+    <div class="card">
+        <div style="color:var(--success); font-weight:bold; margin-bottom:10px;">PREMIAÇÃO ACUMULADA</div>
+        <div class="bola-master" id="bolaGrande">--</div>
+        <div class="grade" id="gradeNumeros"></div>
     </div>
-    
-    <div style="padding:10px; font-size:12px; color:var(--primary); font-weight:bold;">MINHAS CARTELAS</div>
-    <div id="listaCartelas" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px; overflow-y:auto; height:200px;"></div>
 </div>
 
-<div id="modalValor" class="modal hidden">
+<div id="modalPix" class="modal hidden">
     <div class="modal-content">
-        <h3 style="margin-top:0;">Gerar Depósito PIX</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
-            <button class="btn-valor" onclick="setValor(10)">R$ 10</button>
-            <button class="btn-valor" onclick="setValor(20)">R$ 20</button>
-            <button class="btn-valor" onclick="setValor(50)">R$ 50</button>
-        </div>
-        <input type="number" id="valorInputManual" placeholder="Outro valor R$" style="width:90%; margin:15px 0; padding:12px; color:black; border:1px solid #ccc; border-radius:5px;">
-        <button onclick="gerarPix()" style="background:var(--success); color:white; width:100%; padding:15px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">GERAR CÓDIGO PIX</button>
-        <button onclick="fecharModal()" style="margin-top:15px; color:red; border:none; background:none; cursor:pointer;">Voltar</button>
+        <h3>Depositar via PIX</h3>
+        <input type="number" id="valPix" placeholder="Valor R$ (Min 10)">
+        <button class="btn-auth" onclick="gerarPix()">GERAR CÓDIGO</button>
+        <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="background:none; border:none; color:red; margin-top:10px; cursor:pointer;">Cancelar</button>
     </div>
 </div>
 
 <script>
-    // --- LINK DA SUA API NO RENDER ---
     const API = "https://bingoreal.onrender.com";
-    
     let USER_ID = localStorage.getItem('userId');
     let modoCadastro = false;
 
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg; t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 2500);
-    }
-
-    function alternarModo() {
-        modoCadastro = !modoCadastro;
-        document.getElementById('authTitulo').innerText = modoCadastro ? "CRIAR CONTA" : "BINGO REAL";
-        document.getElementById('campoNome').classList.toggle('hidden');
-    }
-
     async function autenticar() {
-        const email = document.getElementById('inputEmail').value;
-        const senha = document.getElementById('inputSenha').value;
-        const name = document.getElementById('inputNome').value;
-        const rota = modoCadastro ? "/register" : "/login";
-        const body = modoCadastro ? { name, email, senha } : { email, senha };
-
-        try {
-            const res = await fetch(`${API}${rota}`, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify(body) 
-            });
+        const body = { 
+            email: document.getElementById('inputEmail').value, 
+            senha: document.getElementById('inputSenha').value,
+            name: document.getElementById('inputNome').value 
+        };
+        const rota = document.getElementById('campoNome').classList.contains('hidden') ? '/login' : '/register';
+        const res = await fetch(API + rota, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+        if(res.ok) {
             const data = await res.json();
-            if (res.ok) {
-                localStorage.setItem('userId', data._id);
-                location.reload();
-            } else { alert(data.message || "Erro de login"); }
-        } catch(e) { alert("Servidor offline. Tente em 30 segundos."); }
+            localStorage.setItem('userId', data._id);
+            location.reload();
+        } else { alert("Erro ao acessar"); }
     }
-
-    function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
-    function fecharModal() { document.getElementById('modalValor').classList.add('hidden'); }
-    function setValor(v) { document.getElementById('valorInputManual').value = v; }
 
     async function gerarPix() {
-        const val = document.getElementById('valorInputManual').value;
-        if(!val || val < 5) return alert("Mínimo R$ 5,00");
-        try {
-            const res = await fetch(`${API}/gerar-pix`, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ userId: USER_ID, valor: val }) 
-            });
-            const data = await res.json();
-            if(data.qr_code) {
-                navigator.clipboard.writeText(data.qr_code);
-                showToast("Código PIX Copiado!");
-                fecharModal();
-            }
-        } catch(e) { alert("Erro ao gerar PIX"); }
-    }
-
-    function iniciarGrade() {
-        const grade = document.getElementById('gradeNumeros');
-        grade.innerHTML = '';
-        for (let i = 1; i <= 50; i++) grade.innerHTML += `<div class="num-check" id="num-${i}">${i}</div>`;
-    }
-
-    async function atualizarDados() {
-        if(!USER_ID) return;
-        try {
-            const res = await fetch(`${API}/user-data/${USER_ID}`);
-            const user = await res.json();
-            document.getElementById('saldoTxt').innerText = `R$ ${user.saldo.toFixed(2)}`;
-            document.getElementById('idTxt').innerText = USER_ID.substring(0,6);
-        } catch(e) {}
-    }
-
-    function copiarID() {
-        navigator.clipboard.writeText(USER_ID);
-        showToast("Seu ID foi copiado!");
+        const val = document.getElementById('valPix').value;
+        const res = await fetch(API + '/gerar-pix', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId: USER_ID, valor: val }) });
+        const data = await res.json();
+        if(data.qr_code) {
+            navigator.clipboard.writeText(data.qr_code);
+            alert("Código PIX Copiado!");
+            document.getElementById('modalPix').classList.add('hidden');
+        }
     }
 
     if(USER_ID) {
         document.getElementById('telaAcesso').classList.add('hidden');
         document.getElementById('telaJogo').classList.remove('hidden');
-        iniciarGrade();
-        atualizarDados();
-        setInterval(atualizarDados, 5000);
+        const grade = document.getElementById('gradeNumeros');
+        for(let i=1; i<=50; i++) grade.innerHTML += `<div class="num">${i}</div>`;
+        fetch(API + '/user-data/' + USER_ID).then(r => r.json()).then(u => {
+            document.getElementById('saldoTxt').innerText = `R$ ${u.saldo.toFixed(2)}`;
+            document.getElementById('idTxt').innerText = USER_ID.substring(0,6);
+        });
     }
 </script>
 </body>
