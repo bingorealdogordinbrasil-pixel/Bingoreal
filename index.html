@@ -7,118 +7,79 @@
     <style>
         :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
         
-        /* AJUSTE GLOBAL PARA FIXAR A TELA */
         html, body { 
-            height: 100%; 
-            width: 100%;
-            margin: 0; 
-            padding: 0; 
-            font-family: sans-serif; 
-            background: var(--bg); 
-            color: white; 
-            overflow: hidden; /* Impede a rolagem da página inteira */
+            height: 100%; width: 100%; margin: 0; padding: 0; 
+            font-family: sans-serif; background: var(--bg); color: white; overflow: hidden; 
         }
 
         .hidden { display: none !important; }
 
-        /* ESTRUTURA DE TELA FLEXÍVEL */
-        #telaJogo {
-            display: flex;
-            flex-direction: column;
-            height: 100vh; /* Ocupa exatamente a altura do navegador */
-            width: 100%;
-        }
+        #telaJogo { display: flex; flex-direction: column; height: 100vh; width: 100%; }
 
-        /* PARTE SUPERIOR QUE NÃO MOVE */
-        .secao-fixa {
-            flex-shrink: 0;
-            z-index: 10;
-            background: var(--bg);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
+        .secao-fixa { flex-shrink: 0; z-index: 10; background: var(--bg); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
-        /* ÁREA DE ROLAGEM DAS CARTELAS */
         #listaCartelas { 
-            flex: 1; /* Ocupa todo o espaço que sobra embaixo */
-            display: flex; 
-            flex-wrap: wrap; 
-            gap: 8px; 
-            justify-content: center; 
-            padding: 15px 5px 40px 5px; /* Padding extra no final para respiro */
-            background: var(--bg); 
-            overflow-y: auto; /* Permite rolar apenas aqui */
-            -webkit-overflow-scrolling: touch; /* Rolagem suave em iPhones */
+            flex: 1; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; 
+            padding: 15px 5px 40px 5px; background: var(--bg); overflow-y: auto; 
+            -webkit-overflow-scrolling: touch; 
         }
 
-        /* TELAS DE AUTH */
-        .auth-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); z-index: 9999; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;
+        .ranking-global {
+            background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+            margin: 5px 10px; padding: 8px; font-size: 11px;
         }
+        .rank-item { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #1e293b; }
+        .rank-item:last-child { border: none; }
+        .rank-nome { color: #94a3b8; }
+        .rank-pts { color: var(--primary); font-weight: bold; }
+
+        .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 110px; margin-bottom: 8px; transition: transform 0.3s; position: relative; }
+        .cartela.top-user { border: 2px solid var(--primary); box-shadow: 0 0 8px rgba(250, 204, 21, 0.4); }
+        .badge-pts { background: var(--primary); color: #000; font-size: 8px; font-weight: bold; padding: 1px 4px; border-radius: 3px; display: block; text-align: center; margin-bottom: 3px; }
+
+        .auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
         .auth-box { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid var(--primary); width: 100%; max-width: 320px; }
         .auth-box h2 { color: var(--primary); margin: 0 0 15px 0; font-size: 24px; text-align: center; }
         .auth-box input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; font-size: 14px; }
         .auth-btn { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-bottom: 10px; }
         .auth-toggle { color: #94a3b8; font-size: 13px; cursor: pointer; text-decoration: underline; text-align: center; display: block;}
-
-        /* TOAST */
-        #toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.95); color: var(--primary);
-            padding: 12px 24px; border-radius: 50px; border: 1px solid var(--primary);
-            font-size: 13px; font-weight: bold; z-index: 10000;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: none;
-        }
-
-        /* HEADER */
+        
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); color: var(--primary); padding: 12px 24px; border-radius: 50px; border: 1px solid var(--primary); font-size: 13px; font-weight: bold; z-index: 10000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: none; }
+        
         .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; box-sizing: border-box; }
         .menu-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
         .menu-btn div { width: 20px; height: 2px; background: white; border-radius: 2px; }
-
-        /* STATUS */
+        
         .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; align-items: center; text-align: center; }
         .status-item { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #334155; }
         .status-item:last-child { border-right: none; }
         .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
         .status-val { font-size: 12px; font-weight: bold; }
-
+        
         .container-compra-topo { background: #0f172a; padding: 6px 12px; border-bottom: 1px solid #334155; display: flex; gap: 6px; align-items: center; justify-content: center; }
         .input-compra { width: 50px !important; text-align: center; margin: 0 !important; padding: 6px !important; color: white; background: #020617; border: 1px solid #334155; border-radius: 4px; font-size: 14px; }
         .btn-compra { flex: 1; max-width: 180px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; padding: 8px; font-size: 13px; }
         .btn-copy-link { background: #334155; color: var(--primary); border: 1px solid var(--primary); padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 90%; max-width: 340px; margin: 8px auto; display: block; font-size: 11px; }
-
-        /* AREA JOGO */
+        
         .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px auto; max-width: 360px; box-sizing: border-box; }
         .layout-jogo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 5px; }
         
-        .bola-sorteada-master { 
-            width: 70px; height: 70px; 
-            background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-            font-size: 30px; font-weight: 900; color: #000; border: 2px solid #78350f; 
-            flex-shrink: 0; 
-        }
+        .bola-sorteada-master { width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; color: #000; border: 2px solid #78350f; flex-shrink: 0; }
         .girando { animation: flashBola 0.4s ease-out; }
-        @keyframes flashBola { 
-            0% { transform: scale(0.6) rotate(-45deg); opacity: 0.5; } 
-            100% { transform: scale(1) rotate(0deg); opacity: 1; } 
-        }
-
+        @keyframes flashBola { 0% { transform: scale(0.6) rotate(-45deg); opacity: 0.5; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+        
         .painel-numeros { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #0f172a; padding: 4px; border-radius: 6px; flex: 1; }
         .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 2px; }
         .num-check.ativo { background: var(--success); color: white; transition: background 0.3s; }
-
+        
         .caixa-premio { background: #064e3b; border: 1px solid var(--success); padding: 8px; border-radius: 8px; margin-bottom: 5px; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; }
         @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-
-        .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 110px; margin-bottom: 8px; }
+        
         .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; }
         .num-c { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 4px 0; display: flex; align-items: center; justify-content: center; text-align: center; }
         .marcado { background: var(--success) !important; color: white !important; }
-
+        
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
         .modal-content { background: white; padding: 15px; border-radius: 12px; color: black; width: 80%; max-width: 280px; text-align: center; }
     </style>
@@ -174,6 +135,13 @@
             <button onclick="comprarCartelas()" class="btn-compra">COMPRAR CARTELA</button>
         </div>
 
+        <div class="ranking-global">
+            <div style="color:var(--primary); font-weight:bold; font-size:10px; text-align:center; margin-bottom:5px;">🏆 TOP 10 GLOBAL (MAIS PERTO DO BINGO)</div>
+            <div id="rankingGlobalLista">
+                <div style="text-align:center; color:#475569;">Aguardando início...</div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="caixa-premio" id="painelPremio">
                 <div class="status-acumulando">💰 ACUMULANDO PRÊMIO...</div>
@@ -221,25 +189,9 @@
         setTimeout(() => { t.style.display = 'none'; }, 2000);
     }
 
-    function copiarID() {
-        if(USER_ID) {
-            navigator.clipboard.writeText(USER_ID);
-            showToast("ID Copiado!");
-        }
-    }
-
-    function copiarLinkJogo() {
-        navigator.clipboard.writeText(window.location.href);
-        showToast("Link Copiado!");
-    }
-
-    function copiarCodigoPix() {
-        if(pixCopiaECola) {
-            navigator.clipboard.writeText(pixCopiaECola);
-            showToast("Código Copiado!");
-        }
-    }
-
+    function copiarID() { if(USER_ID) { navigator.clipboard.writeText(USER_ID); showToast("ID Copiado!"); } }
+    function copiarLinkJogo() { navigator.clipboard.writeText(window.location.href); showToast("Link Copiado!"); }
+    function copiarCodigoPix() { if(pixCopiaECola) { navigator.clipboard.writeText(pixCopiaECola); showToast("Código Copiado!"); } }
     function toggleMenu() { document.getElementById('menuLateral').classList.toggle('hidden'); }
     function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
     function mostrarCadastro() { document.getElementById('telaLogin').classList.add('hidden'); document.getElementById('telaCadastro').classList.remove('hidden'); }
@@ -277,18 +229,14 @@
             segundosRestantes = jogo.tempoSegundos || 0;
 
             const painel = document.getElementById('painelPremio');
-            
-            // Lógica para mostrar Ganhador ou Status
+            // LÓGICA DE OCULTAÇÃO DO VALOR DURANTE O ACUMULO
             if (jogo.fase === 'finalizado' && jogo.ganhador) {
-                painel.innerHTML = `
-                    <div style="background: #facc15; color: #000; padding: 5px; border-radius: 8px; width: 100%; animation: flashBola 0.5s infinite alternate;">
-                        <div style="font-weight:bold; font-size:12px;">🏆 VENCEDOR: ${jogo.ganhador.toUpperCase()}</div>
-                        <div style="font-size:14px; font-weight:900;">PRÊMIO: R$ ${jogo.premioAcumulado.toFixed(2)}</div>
-                    </div>
-                `;
+                painel.innerHTML = `<div style="background: #facc15; color: #000; padding: 5px; border-radius: 8px; width: 100%; animation: flashBola 0.5s infinite alternate;"><div style="font-weight:bold; font-size:12px;">🏆 VENCEDOR: ${jogo.ganhador.toUpperCase()}</div><div style="font-size:14px; font-weight:900;">PRÊMIO: R$ ${jogo.premioAcumulado.toFixed(2)}</div></div>`;
             } else if (jogo.fase === 'acumulando') {
+                // AQUI O VALOR FICA ESCONDIDO
                 painel.innerHTML = `<div class="status-acumulando">💰 ACUMULANDO PRÊMIO...</div>`;
             } else {
+                // O VALOR SÓ APARECE QUANDO O JOGO COMEÇA
                 painel.innerHTML = `<div style="font-size:10px; color:var(--success); font-weight:bold;">🏆 PRÊMIO EM JOGO:</div><div style="font-size:20px; font-weight:900;">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
             }
 
@@ -297,15 +245,11 @@
             if (bolas.length > 0) {
                 const novaBola = bolas[bolas.length - 1];
                 if (novaBola !== ultimaBolaSorteada) {
-                    elBola.innerText = novaBola;
-                    elBola.classList.add('girando');
+                    elBola.innerText = novaBola; elBola.classList.add('girando');
                     setTimeout(() => elBola.classList.remove('girando'), 400);
                     ultimaBolaSorteada = novaBola;
                 }
-            } else {
-                elBola.innerText = "--";
-                ultimaBolaSorteada = null;
-            }
+            } else { elBola.innerText = "--"; ultimaBolaSorteada = null; }
 
             document.querySelectorAll('.num-check').forEach(el => {
                 const num = parseInt(el.innerText);
@@ -313,9 +257,30 @@
                 else el.classList.remove('ativo');
             });
 
-            document.getElementById('listaCartelas').innerHTML = (user.cartelas || []).map(c => `
-                <div class="cartela">
-                    <div class="grid-cartela">${c.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div>
+            const rankingGlobal = jogo.rankingGlobal || [];
+            const rLista = document.getElementById('rankingGlobalLista');
+            if(rankingGlobal.length > 0) {
+                rLista.innerHTML = rankingGlobal.slice(0, 10).map((r, i) => `
+                    <div class="rank-item">
+                        <span class="rank-nome">${i+1}º ${r.nome.split(' ')[0]}</span>
+                        <span class="rank-pts">Faltam ${15 - r.acertos}</span>
+                    </div>
+                `).join('');
+            } else {
+                rLista.innerHTML = `<div style="text-align:center; color:#475569;">Aguardando sorteio...</div>`;
+            }
+
+            let minhasCartelas = (user.cartelas || []).map(c => {
+                const acertos = c.filter(n => bolas.includes(n)).length;
+                return { numeros: c, acertos: acertos };
+            });
+
+            minhasCartelas.sort((a, b) => b.acertos - a.acertos);
+
+            document.getElementById('listaCartelas').innerHTML = minhasCartelas.map((c, idx) => `
+                <div class="cartela ${idx < 10 && c.acertos > 0 ? 'top-user' : ''}">
+                    ${c.acertos > 0 ? `<span class="badge-pts">${c.acertos} ACERTOS</span>` : ''}
+                    <div class="grid-cartela">${c.numeros.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div>
                 </div>
             `).join('');
 
@@ -332,7 +297,6 @@
     async function confirmarGerarPix() {
         const val = document.getElementById('valorInputManual').value;
         if(!val || val <= 0) return alert("Insira um valor válido");
-        
         const res = await fetch(`${API}/gerar-pix`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId: USER_ID, valor: val }) });
         const data = await res.json();
         pixCopiaECola = data.qr_code;
