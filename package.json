@@ -1,5 +1,5 @@
 {
-  "name": "bingo-real",
+  "name": "bingo-backend",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
@@ -9,6 +9,6 @@
     "express": "^4.18.2",
     "mongoose": "^7.0.0",
     "cors": "^2.8.5",
-    "mercadopago": "^2.0.0"
+    "axios": "^1.6.0"
   }
 }
