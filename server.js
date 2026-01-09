@@ -8,15 +8,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// CONEXÃO COM SEU BANCO DE DADOS
-const mongoURI = "mongodb+srv://bingorealdogordinbrasil_db_user:GQBlqipKL3a2Lpoa@cluster0.ap7q4ev.mongodb.net/bingo_pi?retryWrites=true&w=majority";
-mongoose.connect(mongoURI).then(() => console.log("Conectado ao MongoDB: bingo_pi"));
+// 1. CONEXÃO COM O BANCO (USUÁRIO: admin | SENHA: bingo123)
+const mongoURI = "mongodb+srv://admin:bingo123@cluster0.ap7q4ev.mongodb.net/bingo_pi?retryWrites=true&w=majority";
 
-// CONFIGURAÇÃO MERCADO PAGO (Ajuste o Token no painel do Render)
-const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN || 'TOKEN_TESTE' });
+mongoose.connect(mongoURI)
+    .then(() => console.log("✅ BANCO DE DADOS CONECTADO COM SUCESSO!"))
+    .catch(err => console.error("❌ ERRO DE CONEXÃO NO MONGO:", err));
+
+// 2. CONFIGURAÇÃO MERCADO PAGO
+const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN || 'TEST-TOKEN' });
 const payment = new Payment(client);
 
-// MODELO DE USUÁRIO
+// 3. MODELO DE USUÁRIO
 const User = mongoose.model('User', new mongoose.Schema({
     name: String,
     email: { type: String, unique: true, required: true },
@@ -25,7 +28,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     cartelas: { type: Array, default: [] }
 }));
 
-// ROTAS DE LOGIN E REGISTRO
+// 4. ROTAS DE ACESSO
 app.post('/register', async (req, res) => {
     try {
         const { name, email, senha } = req.body;
@@ -48,14 +51,14 @@ app.get('/user-data/:id', async (req, res) => {
     } catch (e) { res.status(404).send(); }
 });
 
-// SERVIR O HTML
+// 5. SERVIR O HTML (Ajuste para o Render)
 app.use(express.static(__dirname));
-app.get('*', (req, res) => {
+app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// PORTA PARA O RENDER
+// 6. PORTA PARA O RENDER
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor rodando em: http://0.0.0.0:${PORT}`);
+    console.log(`🚀 Bingo Real online na porta ${PORT}`);
 });
