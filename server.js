@@ -8,11 +8,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- SERVIR FRONT-END (Corrige o erro "Cannot GET /") ---
 app.use(express.static(path.join(__dirname, '/')));
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 // --- MERCADO PAGO ---
 const client = new MercadoPagoConfig({ 
@@ -22,51 +19,81 @@ const payment = new Payment(client);
 
 // --- BANCO DE DADOS ---
 const mongoURI = "mongodb+srv://admin:bingoreal123@cluster0.ap7q4ev.mongodb.net/?retryWrites=true&w=majority";
-mongoose.connect(mongoURI).then(() => console.log("Bingo Real Conectado!"));
+mongoose.connect(mongoURI);
 
 const User = mongoose.model('User', new mongoose.Schema({
-    name: String,
-    email: { type: String, unique: true },
-    senha: String,
-    saldo: { type: Number, default: 0 },
-    cartelas: { type: Array, default: [] }
+    name: String, email: { type: String, unique: true }, senha: String,
+    saldo: { type: Number, default: 0 }, cartelas: { type: Array, default: [] }
 }));
 
-// ESTADO DO JOGO (Tempo sincronizado)
-let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300 };
+// --- MOTOR DO JOGO ---
+let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null };
 
-// --- MOTOR DO BINGO (O cronômetro que você pediu) ---
-setInterval(() => {
-    if (jogo.tempoSegundos > 0) {
-        jogo.tempoSegundos--; // Diminui o tempo globalmente a cada segundo
-        jogo.fase = "acumulando";
-    } else {
-        jogo.fase = "sorteio";
-        // Sorteia uma bola a cada 10 segundos
-        if (jogo.bolas.length < 50 && (Math.abs(jogo.tempoSegundos) % 10 === 0)) {
-            sortearBolaAutomatica();
+setInterval(async () => {
+    if (jogo.fase === "acumulando") {
+        if (jogo.tempoSegundos > 0) {
+            jogo.tempoSegundos--;
+        } else {
+            jogo.fase = "sorteio";
         }
-        jogo.tempoSegundos--; 
+    } else if (jogo.fase === "sorteio") {
+        // Sorteia uma bola a cada 10 segundos (tempo negativo para controle)
+        if (Math.abs(jogo.tempoSegundos) % 10 === 0) {
+            await realizarSorteio();
+        }
+        jogo.tempoSegundos--;
+    } else if (jogo.fase === "finalizado") {
+        // Aguarda 15 segundos exibindo o ganhador e reinicia
+        if (Math.abs(jogo.tempoSegundos) % 15 === 0) {
+            reiniciarGlobal();
+        }
+        jogo.tempoSegundos--;
     }
 }, 1000);
 
-function sortearBolaAutomatica() {
-    if (jogo.bolas.length >= 50) return;
+async function realizarSorteio() {
+    if (jogo.bolas.length >= 50) {
+        reiniciarGlobal(); // Ninguém ganhou até a bola 50, reseta.
+        return;
+    }
+
     let bola;
     do { bola = Math.floor(Math.random() * 50) + 1; } while (jogo.bolas.includes(bola));
     jogo.bolas.push(bola);
+
+    // Verificar se alguém completou a cartela
+    const todosUsuarios = await User.find({ "cartelas.0": { $exists: true } });
+    for (let u of todosUsuarios) {
+        for (let c of u.cartelas) {
+            const ganhou = c.every(num => jogo.bolas.includes(num));
+            if (ganhou) {
+                jogo.ganhador = u.name;
+                jogo.fase = "finalizado";
+                await User.findByIdAndUpdate(u._id, { $inc: { saldo: jogo.premioAcumulado }, $set: { cartelas: [] } });
+                // Limpa cartelas de todos para o próximo jogo
+                await User.updateMany({}, { $set: { cartelas: [] } });
+                return;
+            }
+        }
+    }
 }
 
-// --- ROTAS PIX E WEBHOOK ---
+function reiniciarGlobal() {
+    jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null };
+}
+
+// --- ROTAS ---
+app.get('/game-status', (req, res) => res.json(jogo));
+
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
     try {
         const response = await payment.create({
             body: {
                 transaction_amount: parseFloat(valor),
-                description: `Depósito Bingo - ID ${userId}`,
+                description: `Crédito Bingo`,
                 payment_method_id: 'pix',
-                payer: { email: 'cliente@bingoreal.com' },
+                payer: { email: 'contato@bingoreal.com' },
                 external_reference: userId
             }
         });
@@ -74,27 +101,29 @@ app.post('/gerar-pix', async (req, res) => {
             qr_code: response.point_of_interaction.transaction_data.qr_code,
             qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64
         });
-    } catch (e) { res.status(500).json({ message: "Erro Pix" }); }
+    } catch (e) { res.status(500).send(); }
 });
 
 app.post('/webhook', async (req, res) => {
     const { action, data } = req.body;
     if (action === "payment.updated") {
-        try {
-            const p = await payment.get({ id: data.id });
-            if (p.status === "approved") {
-                await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
-            }
-        } catch (e) { console.error(e); }
+        const p = await payment.get({ id: data.id });
+        if (p.status === "approved") {
+            await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
+        }
     }
     res.sendStatus(200);
 });
 
-// --- ROTAS API ---
-app.get('/game-status', (req, res) => res.json(jogo));
-app.get('/user-data/:id', async (req, res) => {
-    const user = await User.findById(req.params.id);
-    res.json(user);
+app.get('/user-data/:id', async (req, res) => res.json(await User.findById(req.params.id)));
+
+app.post('/login', async (req, res) => {
+    const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
+    u ? res.json(u) : res.status(401).send();
+});
+
+app.post('/register', async (req, res) => {
+    try { const u = new User(req.body); await u.save(); res.json(u); } catch(e) { res.status(400).send(); }
 });
 
 app.post('/comprar-com-saldo', async (req, res) => {
@@ -114,14 +143,4 @@ app.post('/comprar-com-saldo', async (req, res) => {
     } else res.status(400).send();
 });
 
-app.post('/register', async (req, res) => {
-    const u = new User(req.body); await u.save(); res.status(201).json(u);
-});
-
-app.post('/login', async (req, res) => {
-    const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
-    if(u) res.json(u); else res.status(401).send();
-});
-
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("Servidor Bingo Online!"));
+app.listen(process.env.PORT || 10000);
