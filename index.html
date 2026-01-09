@@ -8,78 +8,55 @@
         :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
         
         html, body { 
-            height: 100%; width: 100%; margin: 0; padding: 0; 
-            font-family: sans-serif; background: var(--bg); color: white; overflow: hidden; 
+            overflow: hidden; 
+            height: 100%; 
+            position: fixed; 
+            width: 100%;
+            font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; 
         }
-
         .hidden { display: none !important; }
-        #telaJogo { display: flex; flex-direction: column; height: 100vh; width: 100%; }
-        .secao-fixa { flex-shrink: 0; z-index: 10; background: var(--bg); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
-        #listaCartelas { 
-            flex: 1; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; 
-            padding: 15px 5px 40px 5px; background: var(--bg); overflow-y: auto; 
-            -webkit-overflow-scrolling: touch; 
-        }
-
-        .ranking-global {
-            background: #0f172a; border: 1px solid #334155; border-radius: 8px;
-            margin: 5px 10px; padding: 8px; font-size: 11px;
-        }
-        .rank-item { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #1e293b; }
-        .rank-item:last-child { border: none; }
-        .rank-nome { color: #94a3b8; }
-        .rank-pts { color: var(--primary); font-weight: bold; }
-
-        /* AJUSTE PARA 8 NÚMEROS (4x2) */
-        .cartela { background: #f8fafc; color: #1e293b; padding: 6px; border-radius: 6px; width: 130px; margin-bottom: 8px; transition: transform 0.3s; position: relative; }
-        .cartela.top-user { border: 2px solid var(--primary); box-shadow: 0 0 10px rgba(250, 204, 21, 0.5); }
-        .badge-pts { background: var(--primary); color: #000; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 3px; display: block; text-align: center; margin-bottom: 5px; }
-
-        .auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
-        .auth-box { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid var(--primary); width: 100%; max-width: 320px; }
-        .auth-box h2 { color: var(--primary); margin: 0 0 15px 0; font-size: 24px; text-align: center; }
-        .auth-box input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; font-size: 14px; }
-        .auth-btn { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-bottom: 10px; }
-        .auth-toggle { color: #94a3b8; font-size: 13px; cursor: pointer; text-decoration: underline; text-align: center; display: block;}
-        
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); color: var(--primary); padding: 12px 24px; border-radius: 50px; border: 1px solid var(--primary); font-size: 13px; font-weight: bold; z-index: 10000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: none; }
-        
+        /* HEADER & STATUS */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; box-sizing: border-box; }
         .menu-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
         .menu-btn div { width: 20px; height: 2px; background: white; border-radius: 2px; }
         
-        .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; align-items: center; text-align: center; }
+        .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; align-items: center; }
         .status-item { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #334155; }
         .status-item:last-child { border-right: none; }
         .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
         .status-val { font-size: 12px; font-weight: bold; }
-        
-        .container-compra-topo { background: #0f172a; padding: 6px 12px; border-bottom: 1px solid #334155; display: flex; gap: 6px; align-items: center; justify-content: center; }
-        .input-compra { width: 50px !important; text-align: center; margin: 0 !important; padding: 6px !important; color: white; background: #020617; border: 1px solid #334155; border-radius: 4px; font-size: 14px; }
-        .btn-compra { flex: 1; max-width: 180px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; padding: 8px; font-size: 13px; }
-        .btn-copy-link { background: #334155; color: var(--primary); border: 1px solid var(--primary); padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 90%; max-width: 340px; margin: 8px auto; display: block; font-size: 11px; }
-        
+
+        /* JOGO */
+        .secao-fixa { background: var(--bg); z-index: 100; position: relative; }
         .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px auto; max-width: 360px; box-sizing: border-box; }
-        .layout-jogo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 5px; }
-        .bola-sorteada-master { width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; color: #000; border: 2px solid #78350f; flex-shrink: 0; }
-        .girando { animation: flashBola 0.4s ease-out; }
-        @keyframes flashBola { 0% { transform: scale(0.6) rotate(-45deg); opacity: 0.5; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
-        
-        .painel-numeros { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #0f172a; padding: 4px; border-radius: 6px; flex: 1; }
-        .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 2px; }
-        .num-check.ativo { background: var(--success); color: white; transition: background 0.3s; }
-        
         .caixa-premio { background: #064e3b; border: 1px solid var(--success); padding: 8px; border-radius: 8px; margin-bottom: 5px; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; }
+        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         
-        /* GRID PARA 8 NÚMEROS */
-        .grid-cartela { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
-        .num-c { font-size: 11px; font-weight: bold; background: #e2e8f0; padding: 6px 0; display: flex; align-items: center; justify-content: center; text-align: center; border-radius: 3px; }
+        /* CARTELAS 8 NÚMEROS */
+        #listaCartelas { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 15px 5px; background: var(--bg); height: calc(100vh - 380px); overflow-y: auto; }
+        .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 120px; height: fit-content; }
+        .grid-cartela { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; }
+        .num-c { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 6px 0; display: flex; align-items: center; justify-content: center; }
         .marcado { background: var(--success) !important; color: white !important; }
-        
+
+        /* MODAIS E BOTÕES PIX */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
         .modal-content { background: white; padding: 15px; border-radius: 12px; color: black; width: 80%; max-width: 280px; text-align: center; }
+        .btn-atalho-valor { padding: 8px; border: 1px solid #2563eb; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: bold; cursor: pointer; font-size: 12px; margin: 2px; }
+        .btn-atalho-valor:active { background: #2563eb; color: white; }
+        
+        /* RESTO DO CSS IGUAL AO SEU */
+        .auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .auth-box { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid var(--primary); width: 100%; max-width: 320px; }
+        .auth-box input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
+        .auth-btn { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .bola-sorteada-master { width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; color: #000; border: 2px solid #78350f; flex-shrink: 0; }
+        .painel-numeros { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #0f172a; padding: 4px; border-radius: 6px; flex: 1; }
+        .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 2px; }
+        .num-check.ativo { background: var(--success); color: white; }
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); color: var(--primary); padding: 12px 24px; border-radius: 50px; border: 1px solid var(--primary); font-size: 13px; font-weight: bold; z-index: 10000; display: none; }
     </style>
 </head>
 <body>
@@ -92,7 +69,7 @@
         <input type="email" id="loginEmail" placeholder="E-mail">
         <input type="password" id="loginSenha" placeholder="Senha">
         <button class="auth-btn" onclick="executarLogin()">ENTRAR</button>
-        <div class="auth-toggle" onclick="mostrarCadastro()">Criar conta grátis</div>
+        <div style="color: #94a3b8; font-size: 13px; cursor: pointer; margin-top:10px;" onclick="mostrarCadastro()">Criar conta grátis</div>
     </div>
 </div>
 
@@ -101,9 +78,9 @@
         <h2>CRIAR CONTA</h2>
         <input type="text" id="regNome" placeholder="Nome Completo">
         <input type="email" id="regEmail" placeholder="E-mail">
-        <input type="password" id="regSenha" placeholder="Crie uma Senha">
+        <input type="password" id="regSenha" placeholder="Senha">
         <button class="auth-btn" style="background:#2563eb;" onclick="executarCadastro()">CADASTRAR</button>
-        <div class="auth-toggle" onclick="mostrarLogin()">Já tenho conta</div>
+        <div style="color: #94a3b8; font-size: 13px; cursor: pointer; margin-top:10px;" onclick="mostrarLogin()">Já tenho conta</div>
     </div>
 </div>
 
@@ -111,8 +88,13 @@
     <div class="secao-fixa">
         <div class="header">
             <button class="menu-btn" onclick="toggleMenu()"><div></div><div></div><div></div></button>
-            <div style="font-weight:bold; color:var(--primary);">BINGO REAL</div>
+            <div style="font-weight:bold; color:var(--primary); font-size:14px;">BINGO REAL</div>
             <button onclick="abrirModalValor()" style="background:var(--success); color:white; border:none; padding:6px 10px; border-radius:4px; font-weight:bold; cursor:pointer;">PIX</button>
+        </div>
+
+        <div id="menuLateral" class="hidden" style="position: absolute; top: 50px; left: 10px; background: #1e293b; border: 1px solid var(--primary); border-radius: 8px; width: 160px; z-index: 2000; text-align: left;">
+            <div class="menu-item" id="perfilNome" style="padding:12px; border-bottom: 1px solid #334155; font-weight:bold;">Carregando...</div>
+            <div class="menu-item" onclick="logout()" style="padding:12px; color:#ef4444; font-weight:bold; cursor:pointer;">🚪 Sair</div>
         </div>
 
         <div class="status-bar-topo">
@@ -121,55 +103,44 @@
             <div class="status-item" onclick="copiarID()" style="cursor:pointer;"><span class="status-label">Meu ID</span><span id="userIdDisplay" class="status-val" style="font-size:10px;">...</span></div>
         </div>
 
-        <div id="menuLateral" class="hidden" style="position: absolute; top: 50px; left: 10px; background: #1e293b; border: 1px solid var(--primary); border-radius: 8px; width: 160px; z-index: 2000; text-align: left;">
-            <div class="menu-item" id="perfilNome" style="padding:12px; border-bottom: 1px solid #334155; font-weight:bold;">Usuário</div>
-            <div class="menu-item" onclick="logout()" style="padding:12px; color:#ef4444; font-weight:bold; cursor:pointer;">🚪 Sair</div>
-        </div>
-
-        <button class="btn-copy-link" onclick="copiarLinkJogo()">🔗 COPIAR LINK DO BINGO</button>
-
-        <div class="container-compra-topo">
-            <input type="number" id="qtdCartelas" value="1" min="1" class="input-compra">
-            <button onclick="comprarCartelas()" class="btn-compra">COMPRAR CARTELA</button>
-        </div>
-
-        <div class="ranking-global">
-            <div style="color:var(--primary); font-weight:bold; font-size:10px; text-align:center; margin-bottom:5px;">🏆 TOP 10 GLOBAL (FALTAM PARA O BINGO)</div>
-            <div id="rankingGlobalLista">
-                <div style="text-align:center; color:#475569;">Aguardando início...</div>
-            </div>
+        <div style="background: #0f172a; padding: 6px; border-bottom: 1px solid #334155; display: flex; gap: 6px; justify-content: center;">
+            <input type="number" id="qtdCartelas" value="1" min="1" style="width:50px; text-align:center; background:#020617; color:white; border:1px solid #334155; border-radius:4px;">
+            <button onclick="comprarCartelas()" style="flex:1; max-width:180px; background:#2563eb; color:white; border:none; border-radius:4px; font-weight:bold; padding:8px; cursor:pointer;">COMPRAR CARTELA</button>
         </div>
 
         <div class="card">
             <div class="caixa-premio" id="painelPremio">
-                <div class="status-acumulando">💰 ACUMULANDO PRÊMIO...</div>
+                <div class="status-acumulando" style="font-size:18px;">💰 ACUMULANDO PRÊMIO...</div>
             </div>
-            <div class="layout-jogo">
+            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:5px;">
                 <div id="bolaGrande" class="bola-sorteada-master">--</div>
                 <div class="painel-numeros" id="gradeNumeros"></div>
             </div>
         </div>
-        
-        <div style="background: #0f172a; padding: 6px; font-size: 11px; color: var(--primary); font-weight: bold; text-align: center; border-bottom: 1px solid #334155;">MINHAS CARTELAS (8 NÚMEROS)</div>
+        <div style="background: #0f172a; padding: 5px; font-size: 11px; color: var(--primary); font-weight: bold; border-bottom: 1px solid #334155;">MINHAS CARTELAS (8 NÚMEROS)</div>
     </div>
-
     <div id="listaCartelas"></div>
 </div>
 
 <div id="modalValor" class="modal hidden">
     <div class="modal-content">
         <h4 style="margin:0 0 10px 0;">DEPOSITAR</h4>
-        <input type="number" id="valorInputManual" placeholder="Valor R$" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;">
-        <button onclick="confirmarGerarPix()" style="background: #22c55e; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold;">GERAR PIX</button>
-        <button onclick="document.getElementById('modalValor').classList.add('hidden')" style="margin-top:8px; border:none; background:none; color:#666; cursor:pointer;">Cancelar</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 10px;">
+            <button class="btn-atalho-valor" onclick="setValorPix(10)">R$ 10</button>
+            <button class="btn-atalho-valor" onclick="setValorPix(20)">R$ 20</button>
+            <button class="btn-atalho-valor" onclick="setValorPix(50)">R$ 50</button>
+        </div>
+        <input type="number" id="valorInputManual" placeholder="Mín. R$ 10" style="width:100%; padding:10px; margin-bottom:10px; box-sizing: border-box;">
+        <button onclick="confirmarGerarPix()" style="background: #22c55e; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">GERAR PIX</button>
+        <button onclick="document.getElementById('modalValor').classList.add('hidden')" style="margin-top:10px; border:none; background:none; color:red; cursor:pointer;">Cancelar</button>
     </div>
 </div>
 
 <div id="modalPix" class="modal hidden">
     <div class="modal-content">
         <h4>PAGAMENTO PIX</h4>
-        <img id="qrImagem" style="width:180px; margin:10px 0; border:1px solid #eee;">
-        <button class="btn-compra" style="width:100%; background:var(--success);" onclick="copiarCodigoPix()">COPIAR CÓDIGO</button>
+        <img id="qrImagem" style="width:180px; margin:10px 0;">
+        <button style="width:100%; background:var(--success); color:white; padding:12px; border:none; border-radius:6px; font-weight:bold;" onclick="copiarCodigoPix()">COPIAR CÓDIGO</button>
         <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="margin-top:10px; border:none; color:red; background:none; cursor:pointer;">Fechar</button>
     </div>
 </div>
@@ -177,19 +148,12 @@
 <script>
     const API = "https://bingoreal.onrender.com";
     let USER_ID = localStorage.getItem('userId');
-    let ultimaBolaSorteada = null;
     let segundosRestantes = 0;
-    let pixCopiaECola = "";
+    let pixCopiaCola = "";
 
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg; t.style.display = 'block';
-        setTimeout(() => { t.style.display = 'none'; }, 2000);
-    }
-
+    function setValorPix(v) { document.getElementById('valorInputManual').value = v; }
+    function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2000); }
     function copiarID() { if(USER_ID) { navigator.clipboard.writeText(USER_ID); showToast("ID Copiado!"); } }
-    function copiarLinkJogo() { navigator.clipboard.writeText(window.location.href); showToast("Link Copiado!"); }
-    function copiarCodigoPix() { if(pixCopiaECola) { navigator.clipboard.writeText(pixCopiaECola); showToast("Código Copiado!"); } }
     function toggleMenu() { document.getElementById('menuLateral').classList.toggle('hidden'); }
     function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
     function mostrarCadastro() { document.getElementById('telaLogin').classList.add('hidden'); document.getElementById('telaCadastro').classList.remove('hidden'); }
@@ -201,7 +165,6 @@
         const senha = document.getElementById('loginSenha').value;
         const res = await fetch(`${API}/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email, senha })});
         if(res.ok) { const user = await res.json(); localStorage.setItem('userId', user._id); location.reload(); }
-        else alert("Login inválido.");
     }
 
     async function executarCadastro() {
@@ -212,8 +175,6 @@
         if(res.ok) { const user = await res.json(); localStorage.setItem('userId', user._id); location.reload(); }
     }
 
-    // LÓGICA DE GERAÇÃO COM 8 NÚMEROS E SEM SEGUIDOS
-    // Obs: O ideal é que o servidor faça isso, mas aqui a interface processa a exibição.
     async function atualizarInterface() {
         if(!USER_ID) return;
         try {
@@ -222,92 +183,60 @@
             const resUser = await fetch(`${API}/user-data/${USER_ID}`);
             const user = await resUser.json();
 
-            document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
-            document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
-            document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8) + "...";
             segundosRestantes = jogo.tempoSegundos || 0;
+            document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
+            document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
+            document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8) + "...";
 
             const painel = document.getElementById('painelPremio');
-            if (jogo.fase === 'finalizado' && jogo.ganhador) {
-                painel.innerHTML = `<div style="background: #facc15; color: #000; padding: 5px; border-radius: 8px; width: 100%; animation: flashBola 0.5s infinite alternate;"><div style="font-weight:bold; font-size:12px;">🏆 VENCEDOR: ${jogo.ganhador.toUpperCase()}</div><div style="font-size:14px; font-weight:900;">PRÊMIO: R$ ${jogo.premioAcumulado.toFixed(2)}</div></div>`;
-            } else if (jogo.fase === 'acumulando') {
-                painel.innerHTML = `<div class="status-acumulando">💰 ACUMULANDO PRÊMIO...</div>`;
+            const bolas = jogo.bolas || [];
+            if (bolas.length > 0) {
+                painel.innerHTML = `<div style="font-size:10px; color:var(--success); font-weight:bold;">🏆 PRÊMIO EM JOGO:</div><div style="font-size:22px; font-weight:900;">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
+                document.getElementById('bolaGrande').innerText = bolas[bolas.length - 1];
             } else {
-                painel.innerHTML = `<div style="font-size:10px; color:var(--success); font-weight:bold;">🏆 PRÊMIO EM JOGO:</div><div style="font-size:20px; font-weight:900;">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
+                painel.innerHTML = `<div class="status-acumulando" style="font-size:18px;">💰 ACUMULANDO PRÊMIO...</div>`;
+                document.getElementById('bolaGrande').innerText = "--";
             }
 
-            const bolas = jogo.bolas || [];
-            const elBola = document.getElementById('bolaGrande');
-            if (bolas.length > 0) {
-                const novaBola = bolas[bolas.length - 1];
-                if (novaBola !== ultimaBolaSorteada) {
-                    elBola.innerText = novaBola; elBola.classList.add('girando');
-                    setTimeout(() => elBola.classList.remove('girando'), 400);
-                    ultimaBolaSorteada = novaBola;
-                }
-            } else { elBola.innerText = "--"; ultimaBolaSorteada = null; }
-
             document.querySelectorAll('.num-check').forEach(el => {
-                const num = parseInt(el.innerText);
-                if (bolas.includes(num)) el.classList.add('ativo');
+                if (bolas.includes(parseInt(el.innerText))) el.classList.add('ativo');
                 else el.classList.remove('ativo');
             });
 
-            const rankingGlobal = jogo.rankingGlobal || [];
-            const rLista = document.getElementById('rankingGlobalLista');
-            if(rankingGlobal.length > 0) {
-                rLista.innerHTML = rankingGlobal.slice(0, 10).map((r, i) => `
-                    <div class="rank-item">
-                        <span class="rank-nome">${i+1}º ${r.nome.split(' ')[0]}</span>
-                        <span class="rank-pts">Faltam ${8 - r.acertos}</span> 
-                    </div>
-                `).join('');
-            } else {
-                rLista.innerHTML = `<div style="text-align:center; color:#475569;">Aguardando sorteio...</div>`;
-            }
-
-            let minhasCartelas = (user.cartelas || []).map(c => {
-                const acertos = c.filter(n => bolas.includes(n)).length;
-                return { numeros: c, acertos: acertos };
-            });
-
-            minhasCartelas.sort((a, b) => b.acertos - a.acertos);
-
-            document.getElementById('listaCartelas').innerHTML = minhasCartelas.map((c, idx) => `
-                <div class="cartela ${idx < 10 && c.acertos > 0 ? 'top-user' : ''}">
-                    ${c.acertos > 0 ? `<span class="badge-pts">${c.acertos} / 8 ACERTOS</span>` : ''}
-                    <div class="grid-cartela">${c.numeros.slice(0,8).map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div>
-                </div>
-            `).join('');
-
-        } catch(e) { console.error("Erro interface", e); }
+            const lista = document.getElementById('listaCartelas');
+            lista.innerHTML = (user.cartelas || []).map(c => {
+                const num8 = c.slice(0, 8);
+                return `<div class="cartela"><div class="grid-cartela">${num8.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div></div>`;
+            }).join('');
+        } catch(e) {}
     }
 
     async function comprarCartelas() {
         const qtd = document.getElementById('qtdCartelas').value;
-        const res = await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) });
-        if(res.ok) { showToast("Cartela comprada!"); atualizarInterface(); }
-        else alert("Saldo insuficiente ou rodada em andamento.");
+        const valAcumulado = qtd * 0.50;
+        await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd, valorAcumulado: valAcumulado }) });
+        atualizarInterface();
     }
 
     async function confirmarGerarPix() {
         const val = document.getElementById('valorInputManual').value;
-        if(!val || val <= 0) return alert("Insira um valor válido");
         const res = await fetch(`${API}/gerar-pix`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId: USER_ID, valor: val }) });
         const data = await res.json();
-        pixCopiaECola = data.qr_code;
         document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
+        pixCopiaCola = data.qr_code;
         document.getElementById('modalValor').classList.add('hidden');
         document.getElementById('modalPix').classList.remove('hidden');
     }
 
+    function copiarCodigoPix() { navigator.clipboard.writeText(pixCopiaCola); showToast("Pix Copiado!"); }
+
     setInterval(() => {
-        const t = document.getElementById('timerTxt');
+        const timer = document.getElementById('timerTxt');
         if (segundosRestantes > 0) {
             segundosRestantes--;
-            const min = Math.floor(segundosRestantes/60), seg = segundosRestantes%60;
-            t.innerText = `${min}:${seg.toString().padStart(2,'0')}`;
-        } else { t.innerText = "SORTEIO!"; }
+            const min = Math.floor(segundosRestantes / 60), seg = segundosRestantes % 60;
+            timer.innerText = `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
+        } else { timer.innerText = "SORTEIO!"; }
     }, 1000);
 
     window.onload = () => {
@@ -315,7 +244,6 @@
         else {
             document.getElementById('telaJogo').classList.remove('hidden');
             const grade = document.getElementById('gradeNumeros');
-            grade.innerHTML = "";
             for (let i = 1; i <= 50; i++) grade.innerHTML += `<div class="num-check">${i}</div>`;
             setInterval(atualizarInterface, 3000);
             atualizarInterface();
