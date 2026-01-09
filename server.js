@@ -8,10 +8,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- SERVIR FRONT-END ---
-// Resolve o erro "Cannot GET /" servindo o seu index.html
+// --- SERVIR FRONT-END (Corrige o erro "Cannot GET /") ---
 app.use(express.static(path.join(__dirname, '/')));
-
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -34,30 +32,34 @@ const User = mongoose.model('User', new mongoose.Schema({
     cartelas: { type: Array, default: [] }
 }));
 
-// ESTADO DO JOGO
+// ESTADO DO JOGO (Tempo sincronizado)
 let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300 };
 
-// MOTOR DO BINGO (Sorteio a cada 10s após o tempo acabar)
+// --- MOTOR DO BINGO (O cronômetro que você pediu) ---
 setInterval(() => {
     if (jogo.tempoSegundos > 0) {
-        jogo.tempoSegundos--;
+        jogo.tempoSegundos--; // Diminui o tempo globalmente a cada segundo
         jogo.fase = "acumulando";
     } else {
         jogo.fase = "sorteio";
+        // Sorteia uma bola a cada 10 segundos
         if (jogo.bolas.length < 50 && (Math.abs(jogo.tempoSegundos) % 10 === 0)) {
-            let bola;
-            do { bola = Math.floor(Math.random() * 50) + 1; } while (jogo.bolas.includes(bola));
-            jogo.bolas.push(bola);
+            sortearBolaAutomatica();
         }
         jogo.tempoSegundos--; 
     }
 }, 1000);
 
-// --- ROTA GERAÇÃO DE PIX ---
+function sortearBolaAutomatica() {
+    if (jogo.bolas.length >= 50) return;
+    let bola;
+    do { bola = Math.floor(Math.random() * 50) + 1; } while (jogo.bolas.includes(bola));
+    jogo.bolas.push(bola);
+}
+
+// --- ROTAS PIX E WEBHOOK ---
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
-    if (!valor || valor < 10) return res.status(400).json({ message: "Mínimo R$ 10" });
-
     try {
         const response = await payment.create({
             body: {
@@ -72,10 +74,9 @@ app.post('/gerar-pix', async (req, res) => {
             qr_code: response.point_of_interaction.transaction_data.qr_code,
             qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64
         });
-    } catch (e) { res.status(500).json({ message: "Erro ao gerar PIX" }); }
+    } catch (e) { res.status(500).json({ message: "Erro Pix" }); }
 });
 
-// --- WEBHOOK PARA SALDO AUTOMÁTICO ---
 app.post('/webhook', async (req, res) => {
     const { action, data } = req.body;
     if (action === "payment.updated") {
@@ -83,21 +84,17 @@ app.post('/webhook', async (req, res) => {
             const p = await payment.get({ id: data.id });
             if (p.status === "approved") {
                 await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
-                console.log(`Saldo creditado: ${p.transaction_amount} para ID: ${p.external_reference}`);
             }
-        } catch (e) { console.error("Erro Webhook:", e); }
+        } catch (e) { console.error(e); }
     }
     res.sendStatus(200);
 });
 
 // --- ROTAS API ---
 app.get('/game-status', (req, res) => res.json(jogo));
-
 app.get('/user-data/:id', async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        res.json(user);
-    } catch (e) { res.status(404).send(); }
+    const user = await User.findById(req.params.id);
+    res.json(user);
 });
 
 app.post('/comprar-com-saldo', async (req, res) => {
@@ -108,27 +105,23 @@ app.post('/comprar-com-saldo', async (req, res) => {
         let novas = [];
         for (let i = 0; i < quantidade; i++) {
             let n = [];
-            while(n.length < 15) { 
-                let num = Math.floor(Math.random() * 50) + 1; 
-                if(!n.includes(num)) n.push(num); 
-            }
-            novas.push(n.sort((a,b) => a - b));
+            while(n.length < 15) { let num = Math.floor(Math.random()*50)+1; if(!n.includes(num)) n.push(num); }
+            novas.push(n.sort((a,b)=>a-b));
         }
         await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { cartelas: { $each: novas } } });
         jogo.premioAcumulado += (custo * 0.7);
         res.json({ success: true });
-    } else res.status(400).send({ message: "Saldo insuficiente ou sorteio em curso" });
+    } else res.status(400).send();
 });
 
 app.post('/register', async (req, res) => {
-    try { const u = new User(req.body); await u.save(); res.status(201).json(u); }
-    catch (e) { res.status(400).json({ message: "Erro no registro" }); }
+    const u = new User(req.body); await u.save(); res.status(201).json(u);
 });
 
 app.post('/login', async (req, res) => {
     const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
-    if(u) res.json(u); else res.status(401).send({ message: "Dados incorretos" });
+    if(u) res.json(u); else res.status(401).send();
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Servidor Bingo rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log("Servidor Bingo Online!"));
