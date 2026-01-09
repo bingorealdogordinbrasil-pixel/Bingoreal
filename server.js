@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // CONEXÃO MONGO (Com sua senha: GQ81qipKL3o2Lpoa)
-const mongoURI = "mongodb+srv://admin:GQ81qipKL3o2Lpoa@cluster0.mongodb.net/bingoReal?retryWrites=true&w=majority";
+const mongoURI = "mongodb+srv://admin:bingo123.mongodb.net/bingoReal?retryWrites=true&w=majority";
 
 mongoose.connect(mongoURI)
     .then(() => console.log("✅ Banco de Dados Conectado!"))
