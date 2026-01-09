@@ -153,10 +153,9 @@
 <script>
     const API = "https://bingoreal.onrender.com";
     let USER_ID = localStorage.getItem('userId');
-    let segundosRestantes = 300; // Alterado para 300 segundos iniciais
+    let segundosRestantes = 0;
     let ultimaBolaSorteada = null;
 
-    // FUNÇÃO PARA MOSTRAR A MENSAGEM PROFISSIONAL
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.innerText = msg;
@@ -168,16 +167,9 @@
     function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
     function setValor(v) { document.getElementById('valorInputManual').value = v; }
     
-    function copiarLinkJogo() { 
-        navigator.clipboard.writeText(window.location.href).then(() => showToast("Link copiado!")); 
-    }
-    function copiarID() { 
-        if (USER_ID) navigator.clipboard.writeText(USER_ID).then(() => showToast("ID copiado!")); 
-    }
-    function copiarCodigoPix() { 
-        navigator.clipboard.writeText(document.getElementById('pixCopiaCola').value).then(() => showToast("Código PIX copiado!")); 
-    }
-
+    function copiarLinkJogo() { navigator.clipboard.writeText(window.location.href).then(() => showToast("Link copiado!")); }
+    function copiarID() { if (USER_ID) navigator.clipboard.writeText(USER_ID).then(() => showToast("ID copiado!")); }
+    function copiarCodigoPix() { navigator.clipboard.writeText(document.getElementById('pixCopiaCola').value).then(() => showToast("Código PIX copiado!")); }
     function logout() { localStorage.clear(); location.reload(); }
 
     function iniciarGrade() {
@@ -192,9 +184,9 @@
             const resStatus = await fetch(`${API}/game-status`);
             const jogo = await resStatus.json();
             
-            // ATUALIZAÇÃO DO TEMPO SINCRONIZADA COM O SERVIDOR
+            // Sincronização forte com o servidor
             if (jogo.tempoSegundos !== undefined) {
-                segundosRestantes = jogo.tempoSegundos; // Sincroniza o tempo real
+                segundosRestantes = jogo.tempoSegundos;
             }
 
             const resUser = await fetch(`${API}/user-data/${USER_ID}`);
@@ -255,22 +247,27 @@
         atualizarInterface();
     }
 
-    // CRONÔMETRO VISUAL
+    // CRONÔMETRO INDEPENDENTE (Corre cada 1 segundo sem travar)
     setInterval(() => {
         if (segundosRestantes > 0) {
             segundosRestantes--;
-            const min = Math.floor(segundosRestantes / 60);
-            const seg = segundosRestantes % 60;
-            document.getElementById('timerTxt').innerText = `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
-        } else {
+        } else if (segundosRestantes < 0) {
+            // Se for negativo, significa que o sorteio está rolando
             document.getElementById('timerTxt').innerText = "SORTEIO!";
+            return;
         }
+
+        const min = Math.floor(Math.abs(segundosRestantes) / 60);
+        const seg = Math.abs(segundosRestantes) % 60;
+        document.getElementById('timerTxt').innerText = (segundosRestantes >= 0) 
+            ? `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`
+            : "SORTEIO!";
     }, 1000);
 
     if(USER_ID) {
         iniciarGrade();
         atualizarInterface();
-        setInterval(atualizarInterface, 3000); // Atualiza dados a cada 3s
+        setInterval(atualizarInterface, 3000); // Sincroniza com o servidor a cada 3s
     }
 </script>
 </body>
