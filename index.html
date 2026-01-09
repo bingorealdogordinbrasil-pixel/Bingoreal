@@ -6,206 +6,88 @@
     <title>Bingo Real - Oficial</title>
     <style>
         :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
-        
-        html, body { 
-            overflow: hidden; height: 100%; position: fixed; width: 100%;
-            font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; 
-        }
+        html, body { overflow: hidden; height: 100%; font-family: sans-serif; background: var(--bg); color: white; margin: 0; }
         .hidden { display: none !important; }
-
-        /* TELA DE LOGIN / CADASTRO */
-        #telaAcesso {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; background: var(--bg); padding: 20px; box-sizing: border-box;
-        }
-        .auth-card {
-            background: var(--card); padding: 30px; border-radius: 15px; border: 1px solid var(--primary);
-            width: 100%; max-width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .auth-card h2 { color: var(--primary); margin-bottom: 20px; font-size: 22px; }
-        .auth-card input {
-            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px;
-            border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box;
-        }
-        .btn-auth {
-            background: var(--primary); color: #000; border: none; width: 100%;
-            padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;
-        }
-
-        /* NOTIFICAÇÃO (TOAST) */
-        #toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.95); color: var(--primary);
-            padding: 12px 24px; border-radius: 50px; border: 1px solid var(--primary);
-            font-size: 13px; font-weight: bold; z-index: 5000; display: none;
-        }
-
-        /* HEADER E JOGO */
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; box-sizing: border-box; }
-        .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; align-items: center; }
-        .status-item { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #334155; }
-        .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
+        
+        /* TELA DE ACESSO */
+        #telaAcesso { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
+        .auth-card { background: var(--card); padding: 30px; border-radius: 15px; border: 1px solid var(--primary); width: 100%; max-width: 350px; text-align: center; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
+        .btn-auth { background: var(--primary); color: #000; border: none; width: 100%; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
+        /* HEADER E STATUS */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #0f172a; border-bottom: 2px solid var(--primary); }
+        .status-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 10px; border-bottom: 1px solid #334155; }
+        .status-label { font-size: 8px; color: #94a3b8; display: block; }
         .status-val { font-size: 12px; font-weight: bold; }
-        .secao-fixa { background: var(--bg); z-index: 100; position: relative; }
-        .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px auto; max-width: 360px; }
-        .painel-numeros { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #0f172a; padding: 4px; border-radius: 6px; flex: 1; }
-        .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 2px; }
-        .num-check.ativo { background: var(--success); color: white; }
-        #listaCartelas { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 15px 5px; background: var(--bg); height: calc(100vh - 380px); overflow-y: auto; }
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
-        .modal-content { background: white; padding: 15px; border-radius: 12px; color: black; width: 80%; max-width: 280px; text-align: center; }
     </style>
 </head>
 <body>
 
-<div id="toast">Copiado!</div>
-
 <div id="telaAcesso">
     <div class="auth-card">
         <h2 id="authTitulo">BINGO REAL</h2>
-        <div id="campoNome" class="hidden">
-            <input type="text" id="inputNome" placeholder="Seu Nome">
-        </div>
-        <input type="email" id="inputEmail" placeholder="Seu E-mail">
-        <input type="password" id="inputSenha" placeholder="Sua Senha">
-        
-        <button class="btn-auth" id="btnAcao" onclick="autenticar()">ENTRAR</button>
-        
-        <p id="toggleAuth" style="margin-top:20px; font-size:14px; cursor:pointer; color:#94a3b8;" onclick="alternarModo()">
-            Não tem conta? <span style="color:var(--primary)">Cadastre-se</span>
-        </p>
+        <div id="campoNome" class="hidden"><input type="text" id="inputNome" placeholder="Seu Nome"></div>
+        <input type="email" id="inputEmail" placeholder="E-mail">
+        <input type="password" id="inputSenha" placeholder="Senha">
+        <button class="btn-auth" onclick="autenticar()">ENTRAR</button>
+        <p onclick="alternarModo()" style="margin-top:15px; font-size:12px; cursor:pointer; color:#94a3b8;">Não tem conta? <span style="color:var(--primary)">Cadastre-se</span></p>
     </div>
 </div>
 
 <div id="telaJogo" class="hidden">
-    <div class="secao-fixa">
-        <div class="header">
-            <div style="font-weight:bold; color:var(--primary); font-size:14px;">BINGO REAL</div>
-            <button onclick="abrirModalValor()" style="background:var(--success); color:white; border:none; padding:6px 10px; border-radius:4px; font-weight:bold; cursor:pointer;">PIX</button>
-        </div>
-
-        <div class="status-bar-topo">
-            <div class="status-item"><span class="status-label">Tempo</span><span id="timerTxt" class="status-val" style="color:var(--primary);">05:00</span></div>
-            <div class="status-item"><span class="status-label">Saldo</span><span id="playerSaldoStatus" class="status-val" style="color:var(--success);">R$ 0,00</span></div>
-            <div class="status-item" onclick="copiarID()" style="cursor:pointer;"><span class="status-label">Meu ID</span><span id="userIdDisplay" class="status-val" style="font-size:10px;">...</span></div>
-        </div>
-
-        <div class="card">
-            <div id="painelPremio" style="margin-bottom:10px; font-weight:bold; color:var(--primary);">BINGO ATIVO</div>
-            <div style="display:flex; align-items:center; gap:10px;">
-                <div id="bolaGrande" style="width:60px; height:60px; background:var(--primary); color:black; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:bold;">--</div>
-                <div class="painel-numeros" id="gradeNumeros"></div>
-            </div>
-        </div>
-        <button onclick="logout()" style="background:none; border:none; color:red; font-size:12px; margin-top:5px; cursor:pointer;">SAIR DA CONTA</button>
+    <div class="header">
+        <div style="font-weight:bold; color:var(--primary);">BINGO REAL</div>
+        <button onclick="logout()" style="background:none; border:none; color:red; font-size:11px;">SAIR</button>
     </div>
-    <div id="listaCartelas"></div>
-</div>
-
-<div id="modalValor" class="modal hidden">
-    <div class="modal-content">
-        <h4>DEPOSITAR</h4>
-        <input type="number" id="valorInputManual" placeholder="Valor Mín. R$ 10" style="color:black; background:#eee; width:100%; padding:10px; margin-bottom:10px;">
-        <button onclick="confirmarGerarPix()" style="background:var(--success); color:white; width:100%; padding:12px; border:none; border-radius:6px; font-weight:bold;">GERAR PIX</button>
-        <button onclick="fecharModais()" style="margin-top:10px; border:none; background:none; color:#666;">Cancelar</button>
+    <div class="status-bar">
+        <div><span class="status-label">SALDO</span><span id="saldoTxt" class="status-val" style="color:var(--success);">R$ 0,00</span></div>
+        <div><span class="status-label">TEMPO</span><span class="status-val">05:00</span></div>
+        <div><span class="status-label">ID</span><span id="idTxt" class="status-val">...</span></div>
     </div>
-</div>
-
-<div id="modalPix" class="modal hidden">
-    <div class="modal-content">
-        <h4>PAGAMENTO PIX</h4>
-        <img id="qrImagem" style="width:180px; margin:10px 0;" src="">
-        <button style="background:#2563eb; color:white; width:100%; padding:10px; border:none; border-radius:6px;" onclick="copiarCodigoPix()">COPIAR CÓDIGO</button>
-        <button onclick="fecharModais()" style="margin-top:10px; border:none; color:red;">Fechar</button>
+    <div style="padding: 20px;">
+        <button onclick="gerarPixTeste()" style="background:var(--success); color:white; padding:15px; width:100%; border:none; border-radius:10px; font-weight:bold;">DEPOSITAR PIX</button>
     </div>
 </div>
 
 <script>
-    const API = "https://bingoreal.onrender.com";
+    const API = ""; // Deixe vazio para usar o mesmo link do Render
     let USER_ID = localStorage.getItem('userId');
     let modoCadastro = false;
-    let pixCopiaCola = "";
 
     function alternarModo() {
         modoCadastro = !modoCadastro;
         document.getElementById('authTitulo').innerText = modoCadastro ? "CRIAR CONTA" : "BINGO REAL";
         document.getElementById('campoNome').classList.toggle('hidden');
-        document.getElementById('btnAcao').innerText = modoCadastro ? "CADASTRAR" : "ENTRAR";
-        document.getElementById('toggleAuth').innerHTML = modoCadastro ? "Já tem conta? <span style='color:var(--primary)'>Entre aqui</span>" : "Não tem conta? <span style='color:var(--primary)'>Cadastre-se</span>";
     }
 
     async function autenticar() {
         const email = document.getElementById('inputEmail').value;
         const senha = document.getElementById('inputSenha').value;
-        const nome = document.getElementById('inputNome').value;
-
-        if (!email || !senha || (modoCadastro && !nome)) return alert("Preencha todos os campos!");
-
+        const name = document.getElementById('inputNome').value;
         const rota = modoCadastro ? "/register" : "/login";
-        const body = modoCadastro ? { name: nome, email, senha } : { email, senha };
+        const body = modoCadastro ? { name, email, senha } : { email, senha };
 
-        try {
-            const res = await fetch(`${API}${rota}`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(body)
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                localStorage.setItem('userId', data._id);
-                USER_ID = data._id;
-                verificarSessao();
-            } else {
-                alert(data.message || "Erro na autenticação");
-            }
-        } catch (e) { alert("Erro ao conectar com o servidor"); }
-    }
-
-    function verificarSessao() {
-        if (USER_ID) {
-            document.getElementById('telaAcesso').classList.add('hidden');
-            document.getElementById('telaJogo').classList.remove('hidden');
-            iniciarGrade();
-            atualizarInterface();
-            setInterval(atualizarInterface, 5000);
-        }
-    }
-
-    async function atualizarInterface() {
-        try {
-            const res = await fetch(`${API}/user-data/${USER_ID}`);
-            const user = await res.json();
-            document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
-            document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8);
-        } catch(e) {}
-    }
-
-    function iniciarGrade() {
-        const grade = document.getElementById('gradeNumeros');
-        grade.innerHTML = '';
-        for (let i = 1; i <= 50; i++) grade.innerHTML += `<div class="num-check" id="num-${i}">${i}</div>`;
-    }
-
-    async function confirmarGerarPix() {
-        const val = document.getElementById('valorInputManual').value;
-        const res = await fetch(`${API}/gerar-pix`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId: USER_ID, valor: val }) });
+        const res = await fetch(rota, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
         const data = await res.json();
-        if (data.qr_code_base64) {
-            document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
-            pixCopiaCola = data.qr_code;
-            document.getElementById('modalValor').classList.add('hidden');
-            document.getElementById('modalPix').classList.remove('hidden');
-        }
+
+        if (res.ok) {
+            localStorage.setItem('userId', data._id);
+            location.reload();
+        } else { alert(data.message); }
+    }
+
+    if (USER_ID) {
+        document.getElementById('telaAcesso').classList.add('hidden');
+        document.getElementById('telaJogo').classList.remove('hidden');
+        fetch(`/user-data/${USER_ID}`).then(r => r.json()).then(user => {
+            document.getElementById('saldoTxt').innerText = `R$ ${user.saldo.toFixed(2)}`;
+            document.getElementById('idTxt').innerText = USER_ID.substring(0,6);
+        });
     }
 
     function logout() { localStorage.clear(); location.reload(); }
-    function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
-    function fecharModais() { document.getElementById('modalValor').classList.add('hidden'); document.getElementById('modalPix').classList.add('hidden'); }
-    function copiarCodigoPix() { navigator.clipboard.writeText(pixCopiaCola); alert("Código copiado!"); }
-    function copiarID() { navigator.clipboard.writeText(USER_ID); alert("ID Copiado!"); }
-
-    window.onload = verificarSessao;
+    function gerarPixTeste() { alert("Botão PIX ativo! Certifique-se de ter configurado o Token no Render."); }
 </script>
 </body>
 </html>
