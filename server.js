@@ -12,11 +12,13 @@ app.use(express.json());
 const mongoURI = "mongodb+srv://admin:bingo123@cluster0.ap7q4ev.mongodb.net/bingo_pi?retryWrites=true&w=majority";
 
 mongoose.connect(mongoURI)
-    .then(() => console.log("✅ BANCO DE DADOS CONECTADO COM SUCESSO!"))
-    .catch(err => console.error("❌ ERRO DE CONEXÃO NO MONGO:", err));
+    .then(() => console.log("✅ BANCO DE DADOS CONECTADO!"))
+    .catch(err => console.error("❌ ERRO NO MONGO:", err));
 
-// 2. CONFIGURAÇÃO MERCADO PAGO
-const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN || 'TEST-TOKEN' });
+// 2. CONFIGURAÇÃO MERCADO PAGO (Puxa do Render Environment)
+const client = new MercadoPagoConfig({ 
+    accessToken: process.env.MP_ACCESS_TOKEN || 'TEST-TOKEN' 
+});
 const payment = new Payment(client);
 
 // 3. MODELO DE USUÁRIO
@@ -28,20 +30,19 @@ const User = mongoose.model('User', new mongoose.Schema({
     cartelas: { type: Array, default: [] }
 }));
 
-// 4. ROTAS DE ACESSO
+// 4. ROTAS
 app.post('/register', async (req, res) => {
     try {
-        const { name, email, senha } = req.body;
-        const user = await User.create({ name, email, senha });
+        const user = await User.create(req.body);
         res.status(201).json(user);
-    } catch (e) { res.status(400).json({ message: "E-mail já cadastrado" }); }
+    } catch (e) { res.status(400).json({ message: "E-mail já existe" }); }
 });
 
 app.post('/login', async (req, res) => {
     const { email, senha } = req.body;
     const user = await User.findOne({ email, senha });
     if (user) res.json(user);
-    else res.status(401).json({ message: "E-mail ou senha incorretos" });
+    else res.status(401).json({ message: "Login incorreto" });
 });
 
 app.get('/user-data/:id', async (req, res) => {
@@ -51,14 +52,14 @@ app.get('/user-data/:id', async (req, res) => {
     } catch (e) { res.status(404).send(); }
 });
 
-// 5. SERVIR O HTML (Ajuste para o Render)
+// 5. SERVIR O FRONTEND
 app.use(express.static(__dirname));
-app.get('/', (req, res) => {
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// 6. PORTA PARA O RENDER
+// 6. PORTA DO RENDER
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Bingo Real online na porta ${PORT}`);
+    console.log(`🚀 Bingo Real na porta ${PORT}`);
 });
