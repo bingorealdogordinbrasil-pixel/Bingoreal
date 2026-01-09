@@ -30,7 +30,6 @@ const User = mongoose.model('User', new mongoose.Schema({
 }));
 
 // --- MOTOR DO JOGO ---
-// Adicionado cartelaVencedora e vitoriaRegistrada para controle
 let jogo = { 
     bolas: [], 
     fase: "acumulando", 
@@ -53,7 +52,6 @@ setInterval(async () => {
         }
         jogo.tempoSegundos--;
     } else if (jogo.fase === "finalizado") {
-        // Aguarda 15 segundos exibindo o vencedor e reseta
         if (Math.abs(jogo.tempoSegundos) % 15 === 0) {
             reiniciarGlobal();
         }
@@ -71,24 +69,19 @@ async function realizarSorteio() {
     
     jogo.bolas.push(bola);
 
-    // Busca apenas usuários que possuem cartelas
     const todosUsuarios = await User.find({ "cartelas.0": { $exists: true } });
     
     for (let u of todosUsuarios) {
         for (let c of u.cartelas) {
-            // Verifica se todos os números da cartela "c" estão no array de "bolas"
             const ganhou = c.every(num => jogo.bolas.includes(num));
             
             if (ganhou) {
                 jogo.ganhador = u.name;
-                jogo.cartelaVencedora = c; // Guarda a cartela específica que ganhou
+                jogo.cartelaVencedora = c; 
                 jogo.fase = "finalizado";
                 jogo.tempoSegundos = 0; 
                 
-                // Paga o prêmio ao vencedor
                 await User.findByIdAndUpdate(u._id, { $inc: { saldo: jogo.premioAcumulado } });
-                
-                // Limpa as cartelas de TODOS os jogadores para a próxima rodada
                 await User.updateMany({}, { $set: { cartelas: [] } });
                 return;
             }
@@ -126,10 +119,11 @@ app.get('/user-data/:id', async (req, res) => {
     } catch (e) { res.status(404).send(); }
 });
 
+// --- ROTA CORRIGIDA COM A REGRA DOS 25% ---
 app.post('/comprar-com-saldo', async (req, res) => {
     const { usuarioId, quantidade } = req.body;
     const user = await User.findById(usuarioId);
-    const custo = parseInt(quantidade) * 2;
+    const custo = parseInt(quantidade) * 2; // Custo de 2 reais por cartela
     
     if (user && user.saldo >= custo && jogo.fase === "acumulando") {
         let novas = [];
@@ -142,7 +136,11 @@ app.post('/comprar-com-saldo', async (req, res) => {
             novas.push(n.sort((a,b)=>a-b));
         }
         await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { cartelas: { $each: novas } } });
-        jogo.premioAcumulado += (custo * 0.7);
+        
+        // AQUI ESTÁ A CORREÇÃO: 25% de 2,00 é 0,50. 
+        // Se custo é 2, 2 * 0.25 = 0,50. Se comprar 10 cartelas (20 reais), 20 * 0.25 = 5 reais para o prêmio.
+        jogo.premioAcumulado += (custo * 0.25); 
+
         res.json({ success: true });
     } else res.status(400).json({ error: "Saldo insuficiente ou fase incorreta" });
 });
