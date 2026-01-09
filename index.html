@@ -6,14 +6,14 @@
     <title>Bingo Real - Oficial</title>
     <style>
         :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
-        body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; text-align: center; overflow-x: hidden; }
+        body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; text-align: center; }
         .hidden { display: none !important; }
         .header { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #0f172a; border-bottom: 2px solid var(--primary); }
         .btn-pix { background: var(--success); color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         .card { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--primary); margin: 10px; }
         .bola-master { width: 80px; height: 80px; background: radial-gradient(circle, #fff, #facc15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #000; margin: 10px auto; border: 3px solid #78350f; font-weight: bold; }
         .grade { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; padding: 5px; background: #000; border-radius: 5px; }
-        .num { font-size: 10px; background: #1e293b; padding: 5px; border-radius: 2px; }
+        .num { font-size: 10px; background: #1e293b; padding: 5px; border-radius: 2px; color: #475569; }
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 999; }
         .modal-content { background: white; padding: 20px; border-radius: 10px; color: #000; width: 80%; max-width: 300px; }
         input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
@@ -28,22 +28,21 @@
         <div id="campoNome" class="hidden"><input type="text" id="inputNome" placeholder="Seu Nome"></div>
         <input type="email" id="inputEmail" placeholder="E-mail">
         <input type="password" id="inputSenha" placeholder="Senha">
-        <button class="btn-auth" onclick="autenticar()">ENTRAR NO JOGO</button>
-        <p onclick="modoCadastro = !modoCadastro; document.getElementById('campoNome').classList.toggle('hidden')" style="cursor:pointer; font-size:14px; margin-top:20px;">Não tem conta? <span style="color:var(--primary)">Cadastre-se</span></p>
+        <button class="btn-auth" onclick="autenticar()">ENTRAR</button>
+        <p onclick="document.getElementById('campoNome').classList.toggle('hidden')" style="cursor:pointer; font-size:14px; margin-top:20px;">Ainda não tem conta? <span style="color:var(--primary)">Cadastre-se</span></p>
     </div>
 </div>
 
 <div id="telaJogo" class="hidden">
     <div class="header">
         <span style="font-weight:bold; color:var(--primary)">BINGO REAL</span>
-        <button class="btn-pix" onclick="document.getElementById('modalPix').classList.remove('hidden')">PIX</button>
+        <button class="btn-pix" onclick="document.getElementById('modalPix').classList.remove('hidden')">DEPOSITAR</button>
     </div>
     <div style="display: flex; justify-content: space-around; padding: 10px; background: #1e293b; font-size: 12px;">
         <span>Saldo: <b id="saldoTxt" style="color:var(--success)">R$ 0,00</b></span>
         <span>ID: <b id="idTxt">...</b></span>
     </div>
     <div class="card">
-        <div style="color:var(--success); font-weight:bold; margin-bottom:10px;">PREMIAÇÃO ACUMULADA</div>
         <div class="bola-master" id="bolaGrande">--</div>
         <div class="grade" id="gradeNumeros"></div>
     </div>
@@ -61,7 +60,6 @@
 <script>
     const API = "https://bingoreal.onrender.com";
     let USER_ID = localStorage.getItem('userId');
-    let modoCadastro = false;
 
     async function autenticar() {
         const body = { 
@@ -75,7 +73,7 @@
             const data = await res.json();
             localStorage.setItem('userId', data._id);
             location.reload();
-        } else { alert("Erro ao acessar"); }
+        } else { alert("Erro de login/cadastro"); }
     }
 
     async function gerarPix() {
@@ -84,16 +82,16 @@
         const data = await res.json();
         if(data.qr_code) {
             navigator.clipboard.writeText(data.qr_code);
-            alert("Código PIX Copiado!");
+            alert("✅ CÓDIGO PIX COPIADO! Cole no seu banco.");
             document.getElementById('modalPix').classList.add('hidden');
-        }
+        } else { alert("Erro ao gerar PIX. Verifique seu Token no Render."); }
     }
 
     if(USER_ID) {
         document.getElementById('telaAcesso').classList.add('hidden');
         document.getElementById('telaJogo').classList.remove('hidden');
         const grade = document.getElementById('gradeNumeros');
-        for(let i=1; i<=50; i++) grade.innerHTML += `<div class="num">${i}</div>`;
+        for(let i=1; i<=50; i++) grade.innerHTML += `<div class="num" id="num-${i}">${i}</div>`;
         fetch(API + '/user-data/' + USER_ID).then(r => r.json()).then(u => {
             document.getElementById('saldoTxt').innerText = `R$ ${u.saldo.toFixed(2)}`;
             document.getElementById('idTxt').innerText = USER_ID.substring(0,6);
