@@ -153,7 +153,7 @@
 <script>
     const API = "https://bingoreal.onrender.com";
     let USER_ID = localStorage.getItem('userId');
-    let segundosRestantes = 0;
+    let segundosRestantes = 300; // Alterado para 300 segundos iniciais
     let ultimaBolaSorteada = null;
 
     // FUNÇÃO PARA MOSTRAR A MENSAGEM PROFISSIONAL
@@ -191,6 +191,12 @@
         try {
             const resStatus = await fetch(`${API}/game-status`);
             const jogo = await resStatus.json();
+            
+            // ATUALIZAÇÃO DO TEMPO SINCRONIZADA COM O SERVIDOR
+            if (jogo.tempoSegundos !== undefined) {
+                segundosRestantes = jogo.tempoSegundos; // Sincroniza o tempo real
+            }
+
             const resUser = await fetch(`${API}/user-data/${USER_ID}`);
             const user = await resUser.json();
 
@@ -204,8 +210,6 @@
             } else {
                 painel.innerHTML = `<div class="status-acumulando">ACUMULANDO...</div>`;
             }
-
-            if (jogo.tempoSegundos !== undefined) segundosRestantes = jogo.tempoSegundos;
 
             const bolas = jogo.bolas || [];
             if (bolas.length > 0) {
@@ -251,19 +255,22 @@
         atualizarInterface();
     }
 
+    // CRONÔMETRO VISUAL
     setInterval(() => {
         if (segundosRestantes > 0) {
             segundosRestantes--;
             const min = Math.floor(segundosRestantes / 60);
             const seg = segundosRestantes % 60;
             document.getElementById('timerTxt').innerText = `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
+        } else {
+            document.getElementById('timerTxt').innerText = "SORTEIO!";
         }
     }, 1000);
 
     if(USER_ID) {
         iniciarGrade();
         atualizarInterface();
-        setInterval(atualizarInterface, 3000);
+        setInterval(atualizarInterface, 3000); // Atualiza dados a cada 3s
     }
 </script>
 </body>
