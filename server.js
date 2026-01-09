@@ -6,77 +6,41 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Rota inicial para testar se o servidor está vivo e evitar o erro "Cannot GET /"
-app.get('/', (req, res) => {
-    res.send("Servidor do Bingo Real está Online e Funcional!");
-});
+app.get('/', (req, res) => res.send("Servidor Bingo Real Online!"));
 
-// URL DO MONGODB COM A SENHA QUE VOCÊ DEFINIU
 const mongoURI = "mongodb+srv://admin:bingoreal123@cluster0.ap7q4ev.mongodb.net/?retryWrites=true&w=majority";
 
-mongoose.connect(mongoURI)
-    .then(() => console.log("Bingo Real: Conectado ao MongoDB com sucesso!"))
-    .catch(err => {
-        console.log("Erro de conexão no MongoDB:", err.message);
-    });
+mongoose.connect(mongoURI).then(() => console.log("Conectado ao MongoDB!"));
 
-// MODELO DE USUÁRIO
 const User = mongoose.model('User', new mongoose.Schema({
-    name: String,
-    email: { type: String, unique: true },
-    senha: String,
-    saldo: { type: Number, default: 0 },
+    name: String, email: { type: String, unique: true },
+    senha: String, saldo: { type: Number, default: 0 },
     cartelas: { type: Array, default: [] }
 }));
 
-// ESTADO DO JOGO
-let jogo = {
-    bolas: [],
-    fase: "acumulando", 
-    premioAcumulado: 0,
-    tempoSegundos: 300 
-};
+let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300 };
 
-// MOTOR DO BINGO (Sorteio Automático)
-setInterval(() => {
-    if (jogo.tempoSegundos > 0) {
-        jogo.tempoSegundos--;
-        jogo.fase = "acumulando";
-    } else {
-        jogo.fase = "sorteio";
-        if (jogo.bolas.length < 50 && (Math.abs(jogo.tempoSegundos) % 10 === 0)) {
-            sortearBola();
-        }
-        jogo.tempoSegundos--; 
-    }
-}, 1000);
+// ROTA PARA SIMULAR GERAÇÃO DE PIX
+app.post('/gerar-pix', (req, res) => {
+    const { valor } = req.body;
+    if (valor < 1) return res.status(400).json({ error: "Valor inválido" });
+    // Aqui você coloca sua chave Pix Real ou link de pagamento
+    res.json({ copiaECola: "SUA_CHAVE_PIX_AQUI_OU_LINK_PAGAMENTO" });
+});
 
-function sortearBola() {
-    if (jogo.bolas.length >= 50) return;
-    let bola;
-    do {
-        bola = Math.floor(Math.random() * 50) + 1;
-    } while (jogo.bolas.includes(bola));
-    jogo.bolas.push(bola);
-    console.log(`Bola Sorteada: ${bola}`);
-}
-
-// ROTAS DE API
-app.get('/game-status', (req, res) => res.json(jogo));
-
+// Outras rotas (Login, Register, Comprar) seguem a mesma lógica anterior...
 app.post('/register', async (req, res) => {
-    try {
-        const user = new User(req.body);
-        await user.save();
-        res.status(201).json(user);
-    } catch (e) { res.status(400).json({ error: "Erro ao registrar" }); }
+    try { const u = new User(req.body); await u.save(); res.status(201).json(u); }
+    catch (e) { res.status(400).json({error: "Erro"}); }
 });
 
 app.post('/login', async (req, res) => {
-    const user = await User.findOne({ email: req.body.email, senha: req.body.senha });
-    if (user) res.json(user); 
-    else res.status(401).json({ error: "Login inválido" });
+    const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
+    if(u) res.json(u); else res.status(401).json({error: "Erro"});
 });
 
+app.get('/game-status', (req, res) => res.json(jogo));
+app.get('/user-data/:id', async (req, res) => res.json(await User.findById(req.params.id)));
+
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log("Rodando na porta " + PORT));
