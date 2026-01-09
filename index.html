@@ -33,17 +33,20 @@
         .status-acumulando-texto { font-size: 20px; font-weight: 900; animation: piscar 1.2s infinite; text-transform: uppercase; }
         @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-        /* LISTA DE CARTELAS - AJUSTE DO FUNDO BRANCO */
-        #listaCartelas { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; padding: 15px; background: var(--bg); height: calc(100vh - 350px); overflow-y: auto; }
+        /* LISTA DE CARTELAS - FUNDO BRANCO JUSTO */
+        #listaCartelas { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; padding: 15px; background: var(--bg); height: calc(100vh - 350px); overflow-y: auto; align-content: flex-start; }
         
         .cartela { 
             background: #ffffff; 
             color: #1e293b; 
-            padding: 10px; 
+            padding: 8px; 
             border-radius: 8px; 
-            width: 140px; /* Largura fixa para não esticar */
+            width: 140px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            flex-grow: 0; /* Impede que ela cresça além do necessário */
+            flex-grow: 0;
+            height: fit-content; /* Remove o excesso abaixo */
+            display: flex;
+            flex-direction: column;
         }
         
         .grid-cartela { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
@@ -235,13 +238,10 @@
             });
             
             document.getElementById('listaCartelas').innerHTML = (user.cartelas || []).map(c => {
-                const cartelaExibicao = c.slice(0, 8); // Pega os 8 números
-                return `<div class="cartela">
-                    <div class="grid-cartela">
-                        ${cartelaExibicao.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}
-                    </div>
-                </div>`;
+                const nums = c.slice(0, 8);
+                return `<div class="cartela"><div class="grid-cartela">${nums.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div></div>`;
             }).join('');
+            
             segundosRestantes = jogo.tempoSegundos || 0;
         } catch(e) {}
     }
@@ -249,13 +249,7 @@
     function mostrarAvisoVitoria(nome, valor) {
         const div = document.createElement('div');
         div.className = 'modal-ganhador';
-        div.innerHTML = `
-            <h2 style="margin:0; font-size:30px;">BINGO!</h2>
-            <p style="margin:10px 0; font-weight:bold;">${nome.toUpperCase()}</p>
-            <div style="background:#000; color:#fff; padding:10px; border-radius:10px; font-size:20px; font-weight:900;">
-                R$ ${valor.toFixed(2)}
-            </div>
-        `;
+        div.innerHTML = `<h2 style="margin:0; font-size:30px;">BINGO!</h2><p style="margin:10px 0; font-weight:bold;">${nome.toUpperCase()}</p><div style="background:#000; color:#fff; padding:10px; border-radius:10px; font-size:20px; font-weight:900;">R$ ${valor.toFixed(2)}</div>`;
         document.body.appendChild(div);
         setTimeout(() => { div.remove(); }, 5000);
     }
