@@ -3,60 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bingo Real - Oficial</title>
+    <title>Bingo Real</title>
     <style>
-        :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
-        
-        html, body { 
-            overflow: hidden; 
-            height: 100%; 
-            position: fixed; 
-            width: 100%;
-            font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; 
-        }
+        :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; --gold: linear-gradient(135deg, #ffd700, #ff8c00, #ffd700); }
+        html, body { overflow: hidden; height: 100%; position: fixed; width: 100%; font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; }
         .hidden { display: none !important; }
-
-        /* HEADER & STATUS */
+        
+        /* AUTH SCREENS */
+        .auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .auth-box { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid var(--primary); width: 100%; max-width: 320px; box-sizing: border-box; }
+        .auth-box h2 { margin-bottom: 20px; color: var(--primary); }
+        .auth-box input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; font-size: 16px; }
+        .auth-btn { width: 100%; padding: 14px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        
+        /* JOGO STYLES */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; box-sizing: border-box; }
         .menu-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
         .menu-btn div { width: 20px; height: 2px; background: white; border-radius: 2px; }
-        
         .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; align-items: center; }
         .status-item { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #334155; }
         .status-item:last-child { border-right: none; }
         .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
         .status-val { font-size: 12px; font-weight: bold; }
-
-        /* JOGO */
-        .secao-fixa { background: var(--bg); z-index: 100; position: relative; }
-        .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px auto; max-width: 360px; box-sizing: border-box; }
-        .caixa-premio { background: #064e3b; border: 1px solid var(--success); padding: 8px; border-radius: 8px; margin-bottom: 5px; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; }
-        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         
-        /* CARTELAS 8 NÚMEROS */
-        #listaCartelas { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 15px 5px; background: var(--bg); height: calc(100vh - 380px); overflow-y: auto; }
-        .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 120px; height: fit-content; }
-        .grid-cartela { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; }
-        .num-c { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 6px 0; display: flex; align-items: center; justify-content: center; }
+        .caixa-premio { background: var(--gold); background-size: 200% 200%; animation: brilhoDourado 3s linear infinite; border: 2px solid #fff; padding: 12px; border-radius: 10px; margin: 5px auto; max-width: 95%; min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); color: #000; }
+        @keyframes brilhoDourado { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .status-acumulando-texto { font-size: 20px; font-weight: 900; animation: piscar 1.2s infinite; text-transform: uppercase; }
+        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        #listaCartelas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 10px; background: var(--bg); height: calc(100vh - 350px); overflow-y: auto; }
+        .cartela { background: #f8fafc; color: #1e293b; padding: 8px; border-radius: 6px; width: 130px; }
+        .grid-cartela { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+        .num-c { font-size: 11px; font-weight: bold; background: #e2e8f0; padding: 6px 0; border-radius: 2px; }
         .marcado { background: var(--success) !important; color: white !important; }
-
-        /* MODAIS E BOTÕES PIX */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
-        .modal-content { background: white; padding: 15px; border-radius: 12px; color: black; width: 80%; max-width: 280px; text-align: center; }
-        .btn-atalho-valor { padding: 8px; border: 1px solid #2563eb; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: bold; cursor: pointer; font-size: 12px; margin: 2px; }
-        .btn-atalho-valor:active { background: #2563eb; color: white; }
         
-        /* RESTO DO CSS IGUAL AO SEU */
-        .auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        .auth-box { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid var(--primary); width: 100%; max-width: 320px; }
-        .auth-box input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
-        .auth-btn { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .bola-sorteada-master { width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; color: #000; border: 2px solid #78350f; flex-shrink: 0; }
+        .card { background: var(--card); padding: 10px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px; box-sizing: border-box; }
+        .bola-sorteada-master { width: 65px; height: 65px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; color: #000; border: 2px solid #78350f; flex-shrink: 0; }
         .painel-numeros { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #0f172a; padding: 4px; border-radius: 6px; flex: 1; }
         .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 2px; }
         .num-check.ativo { background: var(--success); color: white; }
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); color: var(--primary); padding: 12px 24px; border-radius: 50px; border: 1px solid var(--primary); font-size: 13px; font-weight: bold; z-index: 10000; display: none; }
+        
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
+        .modal-content { background: white; padding: 15px; border-radius: 12px; color: black; width: 80%; max-width: 280px; text-align: center; }
+        .btn-atalho-valor { padding: 8px; border: 1px solid #2563eb; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: bold; margin: 2px; cursor: pointer; }
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #0f172a; color: var(--primary); padding: 10px 20px; border-radius: 50px; border: 1px solid var(--primary); z-index: 10000; display: none; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -69,7 +59,7 @@
         <input type="email" id="loginEmail" placeholder="E-mail">
         <input type="password" id="loginSenha" placeholder="Senha">
         <button class="auth-btn" onclick="executarLogin()">ENTRAR</button>
-        <div style="color: #94a3b8; font-size: 13px; cursor: pointer; margin-top:10px;" onclick="mostrarCadastro()">Criar conta grátis</div>
+        <div style="color: #94a3b8; font-size: 13px; cursor: pointer; margin-top:15px;" onclick="mostrarCadastro()">Criar conta grátis</div>
     </div>
 </div>
 
@@ -80,59 +70,57 @@
         <input type="email" id="regEmail" placeholder="E-mail">
         <input type="password" id="regSenha" placeholder="Senha">
         <button class="auth-btn" style="background:#2563eb;" onclick="executarCadastro()">CADASTRAR</button>
-        <div style="color: #94a3b8; font-size: 13px; cursor: pointer; margin-top:10px;" onclick="mostrarLogin()">Já tenho conta</div>
+        <div style="color: #94a3b8; font-size: 13px; cursor: pointer; margin-top:15px;" onclick="mostrarLogin()">Já tenho conta</div>
     </div>
 </div>
 
 <div id="telaJogo" class="hidden">
-    <div class="secao-fixa">
-        <div class="header">
-            <button class="menu-btn" onclick="toggleMenu()"><div></div><div></div><div></div></button>
-            <div style="font-weight:bold; color:var(--primary); font-size:14px;">BINGO REAL</div>
-            <button onclick="abrirModalValor()" style="background:var(--success); color:white; border:none; padding:6px 10px; border-radius:4px; font-weight:bold; cursor:pointer;">PIX</button>
-        </div>
-
-        <div id="menuLateral" class="hidden" style="position: absolute; top: 50px; left: 10px; background: #1e293b; border: 1px solid var(--primary); border-radius: 8px; width: 160px; z-index: 2000; text-align: left;">
-            <div class="menu-item" id="perfilNome" style="padding:12px; border-bottom: 1px solid #334155; font-weight:bold;">Carregando...</div>
-            <div class="menu-item" onclick="logout()" style="padding:12px; color:#ef4444; font-weight:bold; cursor:pointer;">🚪 Sair</div>
-        </div>
-
-        <div class="status-bar-topo">
-            <div class="status-item"><span class="status-label">Tempo</span><span id="timerTxt" class="status-val" style="color:var(--primary);">--:--</span></div>
-            <div class="status-item"><span class="status-label">Saldo</span><span id="playerSaldoStatus" class="status-val" style="color:var(--success);">R$ 0,00</span></div>
-            <div class="status-item" onclick="copiarID()" style="cursor:pointer;"><span class="status-label">Meu ID</span><span id="userIdDisplay" class="status-val" style="font-size:10px;">...</span></div>
-        </div>
-
-        <div style="background: #0f172a; padding: 6px; border-bottom: 1px solid #334155; display: flex; gap: 6px; justify-content: center;">
-            <input type="number" id="qtdCartelas" value="1" min="1" style="width:50px; text-align:center; background:#020617; color:white; border:1px solid #334155; border-radius:4px;">
-            <button onclick="comprarCartelas()" style="flex:1; max-width:180px; background:#2563eb; color:white; border:none; border-radius:4px; font-weight:bold; padding:8px; cursor:pointer;">COMPRAR CARTELA</button>
-        </div>
-
-        <div class="card">
-            <div class="caixa-premio" id="painelPremio">
-                <div class="status-acumulando" style="font-size:18px;">💰 ACUMULANDO PRÊMIO...</div>
-            </div>
-            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:5px;">
-                <div id="bolaGrande" class="bola-sorteada-master">--</div>
-                <div class="painel-numeros" id="gradeNumeros"></div>
-            </div>
-        </div>
-        <div style="background: #0f172a; padding: 5px; font-size: 11px; color: var(--primary); font-weight: bold; border-bottom: 1px solid #334155;">MINHAS CARTELAS (8 NÚMEROS)</div>
+    <div class="header">
+        <button class="menu-btn" onclick="toggleMenu()"><div></div><div></div><div></div></button>
+        <div style="font-weight:bold; color:var(--primary); font-size:14px;">BINGO REAL</div>
+        <button onclick="abrirModalValor()" style="background:var(--success); color:white; border:none; padding:6px 10px; border-radius:4px; font-weight:bold;">PIX</button>
     </div>
+
+    <div id="menuLateral" class="hidden" style="position: absolute; top: 50px; left: 10px; background: #1e293b; border: 1px solid var(--primary); border-radius: 8px; width: 160px; z-index: 2000; text-align: left;">
+        <div class="menu-item" id="perfilNome" style="padding:12px; border-bottom: 1px solid #334155; font-weight:bold;">...</div>
+        <div class="menu-item" onclick="logout()" style="padding:12px; color:#ef4444; font-weight:bold; cursor:pointer;">🚪 Sair</div>
+    </div>
+
+    <div class="status-bar-topo">
+        <div class="status-item"><span class="status-label">Tempo</span><span id="timerTxt" class="status-val" style="color:var(--primary);">--:--</span></div>
+        <div class="status-item"><span class="status-label">Saldo</span><span id="playerSaldoStatus" class="status-val" style="color:var(--success);">R$ 0,00</span></div>
+        <div class="status-item"><span class="status-label">ID</span><span id="userIdDisplay" class="status-val" style="font-size:10px;">...</span></div>
+    </div>
+
+    <div style="background: #0f172a; padding: 10px; border-bottom: 1px solid #334155; display: flex; gap: 6px; justify-content: center;">
+        <input type="number" id="qtdCartelas" value="1" min="1" style="width:50px; text-align:center; background:#020617; color:white; border:1px solid #334155; border-radius:4px;">
+        <button onclick="comprarCartelas()" style="flex:1; max-width:180px; background:#2563eb; color:white; border:none; border-radius:4px; font-weight:bold; padding:8px;">COMPRAR CARTELA</button>
+    </div>
+
+    <div class="card">
+        <div class="caixa-premio" id="painelPremio">
+            <div class="status-acumulando-texto">ACUMULANDO...</div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:5px;">
+            <div id="bolaGrande" class="bola-sorteada-master">--</div>
+            <div class="painel-numeros" id="gradeNumeros"></div>
+        </div>
+    </div>
+
     <div id="listaCartelas"></div>
 </div>
 
 <div id="modalValor" class="modal hidden">
     <div class="modal-content">
-        <h4 style="margin:0 0 10px 0;">DEPOSITAR</h4>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 10px;">
+        <h4>DEPOSITAR</h4>
+        <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 10px;">
             <button class="btn-atalho-valor" onclick="setValorPix(10)">R$ 10</button>
             <button class="btn-atalho-valor" onclick="setValorPix(20)">R$ 20</button>
             <button class="btn-atalho-valor" onclick="setValorPix(50)">R$ 50</button>
         </div>
-        <input type="number" id="valorInputManual" placeholder="Mín. R$ 10" style="width:100%; padding:10px; margin-bottom:10px; box-sizing: border-box;">
-        <button onclick="confirmarGerarPix()" style="background: #22c55e; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">GERAR PIX</button>
-        <button onclick="document.getElementById('modalValor').classList.add('hidden')" style="margin-top:10px; border:none; background:none; color:red; cursor:pointer;">Cancelar</button>
+        <input type="number" id="valorInputManual" placeholder="Valor R$" style="width:100%; padding:10px; margin-bottom:10px; box-sizing: border-box;">
+        <button onclick="confirmarGerarPix()" style="background: #22c55e; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold;">GERAR PIX</button>
+        <button onclick="document.getElementById('modalValor').classList.add('hidden')" style="margin-top:10px; border:none; color:red; background:none;">Cancelar</button>
     </div>
 </div>
 
@@ -141,7 +129,7 @@
         <h4>PAGAMENTO PIX</h4>
         <img id="qrImagem" style="width:180px; margin:10px 0;">
         <button style="width:100%; background:var(--success); color:white; padding:12px; border:none; border-radius:6px; font-weight:bold;" onclick="copiarCodigoPix()">COPIAR CÓDIGO</button>
-        <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="margin-top:10px; border:none; color:red; background:none; cursor:pointer;">Fechar</button>
+        <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="margin-top:10px; border:none; color:red; background:none;">Fechar</button>
     </div>
 </div>
 
@@ -152,27 +140,50 @@
     let pixCopiaCola = "";
 
     function setValorPix(v) { document.getElementById('valorInputManual').value = v; }
-    function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2000); }
-    function copiarID() { if(USER_ID) { navigator.clipboard.writeText(USER_ID); showToast("ID Copiado!"); } }
     function toggleMenu() { document.getElementById('menuLateral').classList.toggle('hidden'); }
-    function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
     function mostrarCadastro() { document.getElementById('telaLogin').classList.add('hidden'); document.getElementById('telaCadastro').classList.remove('hidden'); }
     function mostrarLogin() { document.getElementById('telaCadastro').classList.add('hidden'); document.getElementById('telaLogin').classList.remove('hidden'); }
     function logout() { localStorage.clear(); location.reload(); }
+    function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
+    function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2000); }
 
     async function executarLogin() {
         const email = document.getElementById('loginEmail').value;
         const senha = document.getElementById('loginSenha').value;
-        const res = await fetch(`${API}/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email, senha })});
-        if(res.ok) { const user = await res.json(); localStorage.setItem('userId', user._id); location.reload(); }
+        if(!email || !senha) return alert("Preencha tudo!");
+
+        try {
+            const res = await fetch(`${API}/login`, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ email, senha })
+            });
+            if(res.ok) { 
+                const user = await res.json(); 
+                localStorage.setItem('userId', user._id); 
+                location.reload(); 
+            } else { alert("Login ou senha incorretos!"); }
+        } catch(e) { alert("Erro ao conectar no servidor!"); }
     }
 
     async function executarCadastro() {
         const name = document.getElementById('regNome').value;
         const email = document.getElementById('regEmail').value;
         const senha = document.getElementById('regSenha').value;
-        const res = await fetch(`${API}/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, email, senha })});
-        if(res.ok) { const user = await res.json(); localStorage.setItem('userId', user._id); location.reload(); }
+        if(!name || !email || !senha) return alert("Preencha tudo!");
+
+        try {
+            const res = await fetch(`${API}/register`, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ name, email, senha })
+            });
+            if(res.ok) { 
+                const user = await res.json(); 
+                localStorage.setItem('userId', user._id); 
+                location.reload(); 
+            } else { alert("Erro no cadastro!"); }
+        } catch(e) { alert("Erro ao conectar no servidor!"); }
     }
 
     async function atualizarInterface() {
@@ -183,39 +194,44 @@
             const resUser = await fetch(`${API}/user-data/${USER_ID}`);
             const user = await resUser.json();
 
-            segundosRestantes = jogo.tempoSegundos || 0;
-            document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
+            document.getElementById('perfilNome').innerText = user.name.toUpperCase();
             document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
-            document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8) + "...";
-
+            document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8);
+            
             const painel = document.getElementById('painelPremio');
-            const bolas = jogo.bolas || [];
-            if (bolas.length > 0) {
-                painel.innerHTML = `<div style="font-size:10px; color:var(--success); font-weight:bold;">🏆 PRÊMIO EM JOGO:</div><div style="font-size:22px; font-weight:900;">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
-                document.getElementById('bolaGrande').innerText = bolas[bolas.length - 1];
+            if (jogo.fase === "acumulando") {
+                painel.innerHTML = `<div class="status-acumulando-texto">ACUMULANDO...</div>`;
             } else {
-                painel.innerHTML = `<div class="status-acumulando" style="font-size:18px;">💰 ACUMULANDO PRÊMIO...</div>`;
-                document.getElementById('bolaGrande').innerText = "--";
+                painel.innerHTML = `<div style="font-size:10px; font-weight:bold;">🏆 PRÊMIO LIBERADO:</div><div style="font-size:24px; font-weight:900;">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
             }
 
+            const bolas = jogo.bolas || [];
+            if (bolas.length > 0) document.getElementById('bolaGrande').innerText = bolas[bolas.length - 1];
             document.querySelectorAll('.num-check').forEach(el => {
-                if (bolas.includes(parseInt(el.innerText))) el.classList.add('ativo');
+                const n = parseInt(el.innerText);
+                if (bolas.includes(n)) el.classList.add('ativo');
                 else el.classList.remove('ativo');
             });
-
-            const lista = document.getElementById('listaCartelas');
-            lista.innerHTML = (user.cartelas || []).map(c => {
-                const num8 = c.slice(0, 8);
-                return `<div class="cartela"><div class="grid-cartela">${num8.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div></div>`;
+            
+            // GARANTE APENAS 8 NÚMEROS NA CARTELA
+            document.getElementById('listaCartelas').innerHTML = (user.cartelas || []).map(c => {
+                const cartelaOito = c.slice(0, 8);
+                return `<div class="cartela"><div class="grid-cartela">${cartelaOito.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div></div>`;
             }).join('');
+            segundosRestantes = jogo.tempoSegundos || 0;
         } catch(e) {}
     }
 
     async function comprarCartelas() {
-        const qtd = document.getElementById('qtdCartelas').value;
-        const valAcumulado = qtd * 0.50;
-        await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd, valorAcumulado: valAcumulado }) });
-        atualizarInterface();
+        const qtd = parseInt(document.getElementById('qtdCartelas').value);
+        if (isNaN(qtd) || qtd < 1) return;
+        const res = await fetch(`${API}/comprar-com-saldo`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) 
+        });
+        if(res.ok) atualizarInterface();
+        else alert("Saldo insuficiente!");
     }
 
     async function confirmarGerarPix() {
@@ -227,25 +243,28 @@
         document.getElementById('modalValor').classList.add('hidden');
         document.getElementById('modalPix').classList.remove('hidden');
     }
-
-    function copiarCodigoPix() { navigator.clipboard.writeText(pixCopiaCola); showToast("Pix Copiado!"); }
+    function copiarCodigoPix() { navigator.clipboard.writeText(pixCopiaCola); showToast("Copiado!"); }
 
     setInterval(() => {
         const timer = document.getElementById('timerTxt');
         if (segundosRestantes > 0) {
             segundosRestantes--;
-            const min = Math.floor(segundosRestantes / 60), seg = segundosRestantes % 60;
+            const min = Math.floor(segundosRestantes/60), seg = segundosRestantes%60;
             timer.innerText = `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
-        } else { timer.innerText = "SORTEIO!"; }
+        } else { timer.innerText = "00:00"; }
     }, 1000);
 
     window.onload = () => {
-        if(!USER_ID) document.getElementById('telaLogin').classList.remove('hidden');
-        else {
+        if(!USER_ID) {
+            document.getElementById('telaLogin').classList.remove('hidden');
+            document.getElementById('telaJogo').classList.add('hidden');
+        } else {
+            document.getElementById('telaLogin').classList.add('hidden');
             document.getElementById('telaJogo').classList.remove('hidden');
             const grade = document.getElementById('gradeNumeros');
+            grade.innerHTML = "";
             for (let i = 1; i <= 50; i++) grade.innerHTML += `<div class="num-check">${i}</div>`;
-            setInterval(atualizarInterface, 3000);
+            setInterval(atualizarInterface, 1500);
             atualizarInterface();
         }
     };
