@@ -21,11 +21,9 @@
         .menu-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
         .menu-btn div { width: 20px; height: 2px; background: white; border-radius: 2px; }
         
-        /* STATUS BAR */
         .status-bar-topo { display: grid; grid-template-columns: repeat(4, 1fr); background: #1e293b; padding: 8px 2px; border-bottom: 1px solid #334155; align-items: center; }
         .status-item { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #334155; cursor: default; }
-        .status-item:last-child { border-right: none; cursor: pointer; } /* Clique no ID */
-        .status-item:last-child:active { background: #334155; }
+        .status-item:last-child { border-right: none; cursor: pointer; }
         .status-label { font-size: 7px; color: #94a3b8; text-transform: uppercase; font-weight: bold; pointer-events: none; }
         .status-val { font-size: 11px; font-weight: bold; pointer-events: none; }
         
@@ -33,6 +31,9 @@
         @keyframes brilhoDourado { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         .status-acumulando-texto { font-size: 20px; font-weight: 900; animation: piscar 1.2s infinite; text-transform: uppercase; }
         @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* MODAL GANHADOR */
+        .modal-ganhador { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--gold); color: #000; padding: 25px; border-radius: 20px; border: 5px solid #fff; z-index: 10000; text-align: center; box-shadow: 0 0 50px rgba(0,0,0,0.8); width: 80%; max-width: 280px; }
 
         #listaCartelas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 10px; background: var(--bg); height: calc(100vh - 350px); overflow-y: auto; }
         .cartela { background: #f8fafc; color: #1e293b; padding: 8px; border-radius: 6px; width: 130px; }
@@ -127,7 +128,7 @@
         </div>
         <input type="number" id="valorInputManual" placeholder="Valor R$" style="width:100%; padding:10px; margin-bottom:10px; box-sizing: border-box;">
         <button onclick="confirmarGerarPix()" style="background: #22c55e; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold;">GERAR PIX</button>
-        <button onclick="document.getElementById('modalValor').classList.add('hidden')" style="margin-top:10px; border:none; color:red; background:none;">Cancelar</button>
+        <button onclick="document.getElementById('modalValor').classList.add('hidden')" style="margin-top:10px; border:none; color:red; background:none; cursor:pointer;">Cancelar</button>
     </div>
 </div>
 
@@ -136,7 +137,7 @@
         <h4>PAGAMENTO PIX</h4>
         <img id="qrImagem" style="width:180px; margin:10px 0;">
         <button style="width:100%; background:var(--success); color:white; padding:12px; border:none; border-radius:6px; font-weight:bold;" onclick="copiarCodigoPix()">COPIAR CÓDIGO</button>
-        <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="margin-top:10px; border:none; color:red; background:none;">Fechar</button>
+        <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="margin-top:10px; border:none; color:red; background:none; cursor:pointer;">Fechar</button>
     </div>
 </div>
 
@@ -145,6 +146,7 @@
     let USER_ID = localStorage.getItem('userId');
     let segundosRestantes = 0;
     let pixCopiaCola = "";
+    let avisoGanhadorExibido = false;
 
     function setValorPix(v) { document.getElementById('valorInputManual').value = v; }
     function toggleMenu() { document.getElementById('menuLateral').classList.toggle('hidden'); }
@@ -153,31 +155,27 @@
     function logout() { localStorage.clear(); location.reload(); }
     function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2000); }
-
-    // NOVA FUNÇÃO PARA COPIAR ID
     function copiarID() { if(USER_ID) { navigator.clipboard.writeText(USER_ID); showToast("ID Copiado!"); } }
 
     async function executarLogin() {
         const email = document.getElementById('loginEmail').value;
         const senha = document.getElementById('loginSenha').value;
-        if(!email || !senha) return alert("Preencha tudo!");
         try {
             const res = await fetch(`${API}/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email, senha }) });
             if(res.ok) { const user = await res.json(); localStorage.setItem('userId', user._id); location.reload(); }
             else { alert("Login ou senha incorretos!"); }
-        } catch(e) { alert("Erro ao conectar no servidor!"); }
+        } catch(e) { alert("Erro de conexão!"); }
     }
 
     async function executarCadastro() {
         const name = document.getElementById('regNome').value;
         const email = document.getElementById('regEmail').value;
         const senha = document.getElementById('regSenha').value;
-        if(!name || !email || !senha) return alert("Preencha tudo!");
         try {
             const res = await fetch(`${API}/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, email, senha }) });
             if(res.ok) { const user = await res.json(); localStorage.setItem('userId', user._id); location.reload(); }
             else { alert("Erro no cadastro!"); }
-        } catch(e) { alert("Erro ao conectar no servidor!"); }
+        } catch(e) { alert("Erro de conexão!"); }
     }
 
     async function atualizarInterface() {
@@ -191,19 +189,25 @@
             document.getElementById('perfilNome').innerText = user.name.toUpperCase();
             document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
             document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8);
-            
-            const totalCartelas = user.cartelas ? user.cartelas.length : 0;
-            document.getElementById('countCartelas').innerText = totalCartelas;
+            document.getElementById('countCartelas').innerText = user.cartelas ? user.cartelas.length : 0;
             
             const painel = document.getElementById('painelPremio');
-            if (jogo.fase === "acumulando") {
-                painel.innerHTML = `<div class="status-acumulando-texto">ACUMULANDO...</div>`;
-            } else {
+            // REGRA: SÓ REVELA O VALOR SE O SORTEIO COMEÇAR (FASE != ACUMULANDO)
+            if (jogo.fase !== "acumulando") {
                 painel.innerHTML = `<div style="font-size:10px; font-weight:bold;">🏆 PRÊMIO LIBERADO:</div><div style="font-size:24px; font-weight:900;">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
+            } else {
+                painel.innerHTML = `<div class="status-acumulando-texto">ACUMULANDO...</div>`;
+                avisoGanhadorExibido = false; // Reseta trava para o próximo jogo
+            }
+
+            // LÓGICA DO GANHADOR (Aparece 5 segundos)
+            if (jogo.ganhador && !avisoGanhadorExibido) {
+                mostrarAvisoVitoria(jogo.ganhador, jogo.valorGanho || jogo.premioAcumulado);
+                avisoGanhadorExibido = true;
             }
 
             const bolas = jogo.bolas || [];
-            if (bolas.length > 0) document.getElementById('bolaGrande').innerText = bolas[bolas.length - 1];
+            document.getElementById('bolaGrande').innerText = bolas.length > 0 ? bolas[bolas.length - 1] : "--";
             document.querySelectorAll('.num-check').forEach(el => {
                 const n = parseInt(el.innerText);
                 if (bolas.includes(n)) el.classList.add('ativo');
@@ -218,9 +222,22 @@
         } catch(e) {}
     }
 
+    function mostrarAvisoVitoria(nome, valor) {
+        const div = document.createElement('div');
+        div.className = 'modal-ganhador';
+        div.innerHTML = `
+            <h2 style="margin:0; font-size:30px;">BINGO!</h2>
+            <p style="margin:10px 0; font-weight:bold;">${nome.toUpperCase()}</p>
+            <div style="background:#000; color:#fff; padding:10px; border-radius:10px; font-size:20px; font-weight:900;">
+                R$ ${valor.toFixed(2)}
+            </div>
+        `;
+        document.body.appendChild(div);
+        setTimeout(() => { div.remove(); }, 5000);
+    }
+
     async function comprarCartelas() {
         const qtd = parseInt(document.getElementById('qtdCartelas').value);
-        if (isNaN(qtd) || qtd < 1) return;
         const res = await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) });
         if(res.ok) atualizarInterface();
         else alert("Saldo insuficiente!");
@@ -235,6 +252,7 @@
         document.getElementById('modalValor').classList.add('hidden');
         document.getElementById('modalPix').classList.remove('hidden');
     }
+
     function copiarCodigoPix() { navigator.clipboard.writeText(pixCopiaCola); showToast("Copiado!"); }
 
     setInterval(() => {
@@ -249,9 +267,7 @@
     window.onload = () => {
         if(!USER_ID) {
             document.getElementById('telaLogin').classList.remove('hidden');
-            document.getElementById('telaJogo').classList.add('hidden');
         } else {
-            document.getElementById('telaLogin').classList.add('hidden');
             document.getElementById('telaJogo').classList.remove('hidden');
             const grade = document.getElementById('gradeNumeros');
             grade.innerHTML = "";
