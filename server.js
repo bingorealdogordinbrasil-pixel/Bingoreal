@@ -8,13 +8,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 1. CONEXÃO COM O BANCO DE DADOS (bingo_db)
-const mongoURI = "mongodb+srv://emanntossilva_db_user:jdTfhDfvYbeSHnQH@cluster0.mxdnuqr.mongodb.net/bingo_db?retryWrites=true&w=majority&appName=Cluster0";
+// 1. CONEXÃO COM O SEU NOVO BANCO DE DADOS (bingo_pi)
+const mongoURI = "mongodb+srv://bingorealdogordinbrasil_db_user:GQBlqipKL3a2Lpoa@cluster0.ap7q4ev.mongodb.net/bingo_pi?retryWrites=true&w=majority";
+
 mongoose.connect(mongoURI)
-    .then(() => console.log("Servidor de Bingo e Banco de Dados Online!"))
+    .then(() => console.log("Conectado ao MongoDB: bingo_pi"))
     .catch(err => console.error("Erro ao conectar no MongoDB:", err));
 
-// 2. CONFIGURAÇÃO MERCADO PAGO (Usando variável de ambiente para segurança)
+// 2. CONFIGURAÇÃO MERCADO PAGO
 const client = new MercadoPagoConfig({ 
     accessToken: process.env.MP_ACCESS_TOKEN 
 });
@@ -28,7 +29,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     cartelas: { type: Array, default: [] }
 }));
 
-// 4. ESTADO DO JOGO
+// 4. ESTADO DO JOGO AUTOMÁTICO
 let jogo = {
     bolas: [],
     fase: "acumulando", 
@@ -36,7 +37,7 @@ let jogo = {
     tempoSegundos: 300 
 };
 
-// 5. MOTOR AUTOMÁTICO DO BINGO
+// 5. MOTOR DO BINGO (Sorteio a cada 10s após os 5min de apostas)
 setInterval(() => {
     if (jogo.tempoSegundos > 0) {
         jogo.tempoSegundos--;
@@ -57,11 +58,11 @@ function sortearBolaAutomatica() {
         bola = Math.floor(Math.random() * 50) + 1;
     } while (jogo.bolas.includes(bola));
     jogo.bolas.push(bola);
+    console.log(`Bola sorteada: ${bola}`);
 }
 
-// --- ROTAS PARA O FRONTEND ---
+// --- ROTAS DO SERVIDOR ---
 
-// Faz o link do Render abrir o seu index.html automaticamente
 app.use(express.static(__dirname));
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -73,10 +74,9 @@ app.get('/user-data/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         res.json(user);
-    } catch (e) { res.status(404).send(); }
+    } catch (e) { res.status(404).send("Usuário não encontrado"); }
 });
 
-// Cria usuário automaticamente (Necessário para o novo HTML funcionar)
 app.post('/criar-usuario', async (req, res) => {
     try {
         let user = await User.findOne({ email: req.body.email });
@@ -85,14 +85,13 @@ app.post('/criar-usuario', async (req, res) => {
     } catch (e) { res.status(500).json(e); }
 });
 
-// GERAÇÃO DE PIX REAL
 app.post('/gerar-pix', async (req, res) => {
     const { valor, userId } = req.body;
     try {
         const response = await payment.create({
             body: {
                 transaction_amount: Number(valor),
-                description: 'Deposito Bingo Real',
+                description: 'Bingo Real - Depósito',
                 payment_method_id: 'pix',
                 payer: { email: 'comprador@bingoreal.com' },
                 metadata: { user_id: userId }
@@ -102,10 +101,9 @@ app.post('/gerar-pix', async (req, res) => {
     } catch (e) { res.status(500).json(e); }
 });
 
-// COMPRA DE CARTELAS
 app.post('/comprar-com-saldo', async (req, res) => {
     const { usuarioId, quantidade } = req.body;
-    if (jogo.fase !== "acumulando") return res.status(400).json({ message: "Sorteio em andamento" });
+    if (jogo.fase !== "acumulando") return res.status(400).json({ message: "Sorteio já iniciado" });
 
     const precoTotal = quantidade * 2;
     const user = await User.findById(usuarioId);
@@ -134,7 +132,7 @@ app.post('/comprar-com-saldo', async (req, res) => {
     }
 });
 
-// WEBHOOK PARA RECEBER PAGAMENTO AUTOMÁTICO
+// WEBHOOK PARA SALDO CAIR NA HORA
 app.post('/webhook', async (req, res) => {
     const { action, data } = req.body;
     if (action === "payment.updated") {
@@ -144,7 +142,6 @@ app.post('/webhook', async (req, res) => {
                 const userId = p.metadata.user_id;
                 const valor = p.transaction_amount;
                 await User.findByIdAndUpdate(userId, { $inc: { saldo: valor } });
-                console.log(`Saldo de R$ ${valor} adicionado ao usuario ${userId}`);
             }
         } catch (e) { console.error("Erro Webhook:", e); }
     }
@@ -152,4 +149,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("Bingo rodando na porta " + PORT));
+app.listen(PORT, () => console.log("Bingo Real Rodando na porta " + PORT));
