@@ -36,6 +36,7 @@ let jogo = {
     premioAcumulado: 0, 
     tempoSegundos: 300, 
     ganhador: null,
+    valorGanho: 0, // Adicionado para salvar o prêmio do ganhador
     cartelaVencedora: null 
 };
 
@@ -52,10 +53,11 @@ setInterval(async () => {
         }
         jogo.tempoSegundos--;
     } else if (jogo.fase === "finalizado") {
-        if (Math.abs(jogo.tempoSegundos) % 15 === 0) {
+        // Fica 15 segundos exibindo o ganhador antes de reiniciar
+        if (Math.abs(jogo.tempoSegundos) >= 15) {
             reiniciarGlobal();
         }
-        jogo.tempoSegundos--;
+        jogo.tempoSegundos++; // Contador positivo para o tempo de exibição
     }
 }, 1000);
 
@@ -73,13 +75,15 @@ async function realizarSorteio() {
     
     for (let u of todosUsuarios) {
         for (let c of u.cartelas) {
+            // Verifica se a cartela (que agora tem 8 números conforme seu HTML) foi preenchida
             const ganhou = c.every(num => jogo.bolas.includes(num));
             
             if (ganhou) {
                 jogo.ganhador = u.name;
+                jogo.valorGanho = jogo.premioAcumulado;
                 jogo.cartelaVencedora = c; 
                 jogo.fase = "finalizado";
-                jogo.tempoSegundos = 0; 
+                jogo.tempoSegundos = 0; // Reseta para contar os 15s de exibição
                 
                 await User.findByIdAndUpdate(u._id, { $inc: { saldo: jogo.premioAcumulado } });
                 await User.updateMany({}, { $set: { cartelas: [] } });
@@ -96,6 +100,7 @@ function reiniciarGlobal() {
         premioAcumulado: 0, 
         tempoSegundos: 300, 
         ganhador: null,
+        valorGanho: 0,
         cartelaVencedora: null 
     };
 }
@@ -119,17 +124,16 @@ app.get('/user-data/:id', async (req, res) => {
     } catch (e) { res.status(404).send(); }
 });
 
-// --- ROTA CORRIGIDA COM A REGRA DOS 25% ---
 app.post('/comprar-com-saldo', async (req, res) => {
     const { usuarioId, quantidade } = req.body;
     const user = await User.findById(usuarioId);
-    const custo = parseInt(quantidade) * 2; // Custo de 2 reais por cartela
+    const custo = parseInt(quantidade) * 2; 
     
     if (user && user.saldo >= custo && jogo.fase === "acumulando") {
         let novas = [];
         for (let i = 0; i < quantidade; i++) {
             let n = [];
-            while(n.length < 15) { 
+            while(n.length < 8) { // Ajustado para 8 números conforme a lógica das suas cartelas
                 let num = Math.floor(Math.random()*50)+1; 
                 if(!n.includes(num)) n.push(num); 
             }
@@ -137,15 +141,12 @@ app.post('/comprar-com-saldo', async (req, res) => {
         }
         await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { cartelas: { $each: novas } } });
         
-        // AQUI ESTÁ A CORREÇÃO: 25% de 2,00 é 0,50. 
-        // Se custo é 2, 2 * 0.25 = 0,50. Se comprar 10 cartelas (20 reais), 20 * 0.25 = 5 reais para o prêmio.
         jogo.premioAcumulado += (custo * 0.25); 
 
         res.json({ success: true });
     } else res.status(400).json({ error: "Saldo insuficiente ou fase incorreta" });
 });
 
-// --- ROTAS ADMINISTRATIVAS ---
 app.get('/admin/users', async (req, res) => {
     try {
         const users = await User.find({}, 'name saldo _id').sort({ name: 1 });
@@ -167,7 +168,6 @@ app.post('/reset-game', (req, res) => {
     res.json({ success: true });
 });
 
-// --- PAGAMENTOS ---
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
     try {
@@ -201,3 +201,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 app.listen(process.env.PORT || 10000);
+
