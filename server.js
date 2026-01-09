@@ -22,8 +22,11 @@ const mongoURI = "mongodb+srv://admin:bingoreal123@cluster0.ap7q4ev.mongodb.net/
 mongoose.connect(mongoURI);
 
 const User = mongoose.model('User', new mongoose.Schema({
-    name: String, email: { type: String, unique: true }, senha: String,
-    saldo: { type: Number, default: 0 }, cartelas: { type: Array, default: [] }
+    name: String, 
+    email: { type: String, unique: true }, 
+    senha: String,
+    saldo: { type: Number, default: 0 }, 
+    cartelas: { type: Array, default: [] }
 }));
 
 // --- MOTOR DO JOGO ---
@@ -37,13 +40,12 @@ setInterval(async () => {
             jogo.fase = "sorteio";
         }
     } else if (jogo.fase === "sorteio") {
-        // Sorteia uma bola a cada 10 segundos (tempo negativo para controle)
-        if (Math.abs(jogo.tempoSegundos) % 10 === 0) {
+        // --- ALTERADO: SORTEIA A CADA 3 SEGUNDOS ---
+        if (Math.abs(jogo.tempoSegundos) % 3 === 0) {
             await realizarSorteio();
         }
         jogo.tempoSegundos--;
     } else if (jogo.fase === "finalizado") {
-        // Aguarda 15 segundos exibindo o ganhador e reinicia
         if (Math.abs(jogo.tempoSegundos) % 15 === 0) {
             reiniciarGlobal();
         }
@@ -52,16 +54,15 @@ setInterval(async () => {
 }, 1000);
 
 async function realizarSorteio() {
-    if (jogo.bolas.length >= 50) {
-        reiniciarGlobal(); // Ninguém ganhou até a bola 50, reseta.
-        return;
-    }
+    if (jogo.bolas.length >= 50 || jogo.fase !== "sorteio") return;
 
     let bola;
-    do { bola = Math.floor(Math.random() * 50) + 1; } while (jogo.bolas.includes(bola));
+    do { 
+        bola = Math.floor(Math.random() * 50) + 1; 
+    } while (jogo.bolas.includes(bola));
+    
     jogo.bolas.push(bola);
 
-    // Verificar se alguém completou a cartela
     const todosUsuarios = await User.find({ "cartelas.0": { $exists: true } });
     for (let u of todosUsuarios) {
         for (let c of u.cartelas) {
@@ -69,8 +70,9 @@ async function realizarSorteio() {
             if (ganhou) {
                 jogo.ganhador = u.name;
                 jogo.fase = "finalizado";
-                await User.findByIdAndUpdate(u._id, { $inc: { saldo: jogo.premioAcumulado }, $set: { cartelas: [] } });
-                // Limpa cartelas de todos para o próximo jogo
+                jogo.tempoSegundos = 0; // Inicia contador de 15s para reiniciar
+                
+                await User.findByIdAndUpdate(u._id, { $inc: { saldo: jogo.premioAcumulado } });
                 await User.updateMany({}, { $set: { cartelas: [] } });
                 return;
             }
@@ -82,9 +84,73 @@ function reiniciarGlobal() {
     jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null };
 }
 
-// --- ROTAS ---
+// --- ROTAS DO JOGO ---
 app.get('/game-status', (req, res) => res.json(jogo));
 
+app.post('/login', async (req, res) => {
+    const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
+    u ? res.json(u) : res.status(401).send();
+});
+
+app.post('/register', async (req, res) => {
+    try { const u = new User(req.body); await u.save(); res.json(u); } catch(e) { res.status(400).send(); }
+});
+
+app.get('/user-data/:id', async (req, res) => {
+    try {
+        const u = await User.findById(req.params.id);
+        res.json(u);
+    } catch (e) { res.status(404).send(); }
+});
+
+app.post('/comprar-com-saldo', async (req, res) => {
+    const { usuarioId, quantidade } = req.body;
+    const user = await User.findById(usuarioId);
+    const custo = parseInt(quantidade) * 2;
+    
+    if (user && user.saldo >= custo && jogo.fase === "acumulando") {
+        let novas = [];
+        for (let i = 0; i < quantidade; i++) {
+            let n = [];
+            while(n.length < 15) { 
+                let num = Math.floor(Math.random()*50)+1; 
+                if(!n.includes(num)) n.push(num); 
+            }
+            novas.push(n.sort((a,b)=>a-b));
+        }
+        await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { cartelas: { $each: novas } } });
+        jogo.premioAcumulado += (custo * 0.7);
+        res.json({ success: true });
+    } else res.status(400).json({ error: "Saldo insuficiente ou fase incorreta" });
+});
+
+// --- ROTAS ADMINISTRATIVAS (PARA O GERENTE) ---
+
+// Lista todos os usuários e saldos
+app.get('/admin/users', async (req, res) => {
+    try {
+        const users = await User.find({}, 'name saldo _id').sort({ name: 1 });
+        res.json(users);
+    } catch (e) { res.status(500).send(); }
+});
+
+// Adiciona saldo manualmente
+app.post('/adicionar-saldo-manual', async (req, res) => {
+    const { userId, valor } = req.body;
+    try {
+        const user = await User.findByIdAndUpdate(userId, { $inc: { saldo: parseFloat(valor) } }, { new: true });
+        if (user) res.json({ success: true, novoSaldo: user.saldo });
+        else res.status(404).json({ message: "Usuário não encontrado" });
+    } catch (e) { res.status(500).json({ message: "Erro ao processar ID" }); }
+});
+
+// Reseta o jogo manualmente
+app.post('/reset-game', (req, res) => {
+    reiniciarGlobal();
+    res.json({ success: true });
+});
+
+// --- PAGAMENTOS E WEBHOOK ---
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
     try {
@@ -107,40 +173,14 @@ app.post('/gerar-pix', async (req, res) => {
 app.post('/webhook', async (req, res) => {
     const { action, data } = req.body;
     if (action === "payment.updated") {
-        const p = await payment.get({ id: data.id });
-        if (p.status === "approved") {
-            await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
-        }
+        try {
+            const p = await payment.get({ id: data.id });
+            if (p.status === "approved") {
+                await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
+            }
+        } catch (e) { console.error("Erro webhook"); }
     }
     res.sendStatus(200);
-});
-
-app.get('/user-data/:id', async (req, res) => res.json(await User.findById(req.params.id)));
-
-app.post('/login', async (req, res) => {
-    const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
-    u ? res.json(u) : res.status(401).send();
-});
-
-app.post('/register', async (req, res) => {
-    try { const u = new User(req.body); await u.save(); res.json(u); } catch(e) { res.status(400).send(); }
-});
-
-app.post('/comprar-com-saldo', async (req, res) => {
-    const { usuarioId, quantidade } = req.body;
-    const user = await User.findById(usuarioId);
-    const custo = quantidade * 2;
-    if (user && user.saldo >= custo && jogo.fase === "acumulando") {
-        let novas = [];
-        for (let i = 0; i < quantidade; i++) {
-            let n = [];
-            while(n.length < 15) { let num = Math.floor(Math.random()*50)+1; if(!n.includes(num)) n.push(num); }
-            novas.push(n.sort((a,b)=>a-b));
-        }
-        await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { cartelas: { $each: novas } } });
-        jogo.premioAcumulado += (custo * 0.7);
-        res.json({ success: true });
-    } else res.status(400).send();
 });
 
 app.listen(process.env.PORT || 10000);
