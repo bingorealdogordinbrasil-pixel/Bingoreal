@@ -7,198 +7,230 @@
     <style>
         :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
         
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: var(--bg); color: white; margin: 0; padding: 0;
-            display: flex; flex-direction: column; align-items: center;
+        html, body { 
+            overflow: hidden; 
+            height: 100%; 
+            position: fixed; 
+            width: 100%;
+            font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; 
         }
-
         .hidden { display: none !important; }
 
+        /* NOTIFICAÇÃO (TOAST) */
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95); color: var(--primary);
+            padding: 12px 24px; border-radius: 50px; border: 1px solid var(--primary);
+            font-size: 13px; font-weight: bold; z-index: 5000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: none; animation: fadeInOut 2s forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; top: 10px; }
+            15% { opacity: 1; top: 20px; }
+            85% { opacity: 1; top: 20px; }
+            100% { opacity: 0; top: 10px; }
+        }
+
         /* HEADER */
-        .header { 
-            width: 100%; height: 60px; background: #0f172a; 
-            display: flex; align-items: center; justify-content: space-between; 
-            padding: 0 15px; box-sizing: border-box; border-bottom: 2px solid var(--primary);
-            position: sticky; top: 0; z-index: 100;
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-bottom: 2px solid var(--primary); height: 50px; box-sizing: border-box; }
+        .menu-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
+        .menu-btn div { width: 20px; height: 2px; background: white; border-radius: 2px; }
+
+        /* BARRA DE STATUS */
+        .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; align-items: center; }
+        .status-item { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #334155; }
+        .status-item:last-child { border-right: none; }
+        .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
+        .status-val { font-size: 12px; font-weight: bold; }
+
+        .secao-fixa { background: var(--bg); z-index: 100; position: relative; }
+        .container-compra-topo { background: #0f172a; padding: 6px 12px; border-bottom: 1px solid #334155; display: flex; gap: 6px; align-items: center; justify-content: center; }
+        .input-compra { width: 50px !important; text-align: center; margin: 0 !important; padding: 6px !important; color: white; background: #020617; border: 1px solid #334155; border-radius: 4px; font-size: 14px; }
+        .btn-compra { flex: 1; max-width: 180px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; padding: 8px; font-size: 13px; }
+        .btn-copy-link { background: #334155; color: var(--primary); border: 1px solid var(--primary); padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 90%; max-width: 340px; margin: 10px auto; display: block; font-size: 11px; }
+
+        .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px auto; max-width: 360px; box-sizing: border-box; }
+        .layout-jogo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 5px; }
+        .bola-sorteada-master { width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; color: #000; border: 2px solid #78350f; flex-shrink: 0; }
+        .girando { animation: girarBola 0.15s infinite linear; }
+        @keyframes girarBola { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .painel-numeros { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #0f172a; padding: 4px; border-radius: 6px; flex: 1; }
+        .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 2px; }
+        .num-check.ativo { background: var(--success); color: white; }
+
+        .caixa-premio { background: #064e3b; border: 1px solid var(--success); padding: 8px; border-radius: 8px; margin-bottom: 5px; min-height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; font-size: 14px; }
+        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .valor-revelado { color: #fff; font-size: 20px; font-weight: 900; }
+
+        /* AREA DE ROLAGEM */
+        #listaCartelas { 
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 15px 5px;
+            background: var(--bg); height: calc(100vh - 380px); overflow-y: auto; -webkit-overflow-scrolling: touch; 
         }
 
-        /* CARD DE SALDO */
-        .status-container {
-            background: var(--card); width: 90%; margin-top: 20px;
-            padding: 15px; border-radius: 12px; border: 1px solid #334155;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 110px; height: fit-content; margin-bottom: 8px; }
+        .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; }
+        .num-c { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 4px 0; display: flex; align-items: center; justify-content: center; }
+        .marcado { background: var(--success) !important; color: white !important; }
 
-        .saldo-txt { color: var(--success); font-size: 24px; font-weight: bold; }
-
-        /* BOTÃO DE DEPÓSITO */
-        .btn-deposit {
-            background: var(--success); color: white; border: none;
-            padding: 15px 30px; border-radius: 10px; font-weight: bold;
-            font-size: 18px; cursor: pointer; margin-top: 20px; width: 90%;
-            transition: transform 0.2s;
-        }
-        .btn-deposit:active { transform: scale(0.95); }
-
-        /* MODAL */
-        .modal { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9); 
-            display: flex; align-items: center; justify-content: center; z-index: 1000; 
-        }
-        .modal-content { 
-            background: white; color: black; padding: 25px; 
-            border-radius: 20px; width: 85%; max-width: 350px; text-align: center; 
-        }
-
-        input[type="number"] {
-            width: 100%; padding: 12px; margin: 10px 0;
-            border: 1px solid #ccc; border-radius: 8px; font-size: 16px;
-            box-sizing: border-box;
-        }
-
-        #qrImagem { width: 220px; height: 220px; margin: 15px auto; display: block; }
-        
-        textarea {
-            width: 100%; height: 60px; font-size: 10px; 
-            background: #f1f5f9; border: 1px solid #cbd5e1;
-            padding: 5px; border-radius: 5px; resize: none;
-        }
+        /* MODAIS */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
+        .modal-content { background: white; padding: 15px; border-radius: 12px; color: black; width: 80%; max-width: 280px; text-align: center; }
+        .btn-valor { padding: 8px; border: 1px solid #2563eb; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: bold; cursor: pointer; font-size: 12px; margin: 2px; }
+        input { width: 100%; padding: 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div style="font-weight:bold; color:var(--primary); font-size: 20px;">BINGO REAL</div>
-        <div id="perfilNome" style="font-size: 12px; color: #94a3b8;">Carregando...</div>
-    </div>
+<div id="toast">Copiado!</div>
 
-    <div class="status-container">
-        <div>
-            <div style="font-size: 12px; color: #94a3b8;">MEU SALDO</div>
-            <div id="playerSaldoStatus" class="saldo-txt">R$ 0,00</div>
+<div id="telaJogo">
+    <div class="secao-fixa">
+        <div class="header">
+            <button class="menu-btn" onclick="toggleMenu()"><div></div><div></div><div></div></button>
+            <div style="font-weight:bold; color:var(--primary); font-size:14px;">BINGO REAL</div>
+            <button onclick="abrirModalValor()" style="background:var(--success); color:white; border:none; padding:6px 10px; border-radius:4px; font-weight:bold; font-size:12px; cursor:pointer;">PIX</button>
         </div>
-        <div style="text-align: right;">
-            <div style="font-size: 10px; color: #94a3b8;">ID: <span id="userIdDisplay">...</span></div>
+
+        <div class="status-bar-topo">
+            <div class="status-item"><span class="status-label">Tempo</span><span id="timerTxt" class="status-val" style="color:var(--primary);">--:--</span></div>
+            <div class="status-item"><span class="status-label">Saldo</span><span id="playerSaldoStatus" class="status-val" style="color:var(--success);">R$ 0,00</span></div>
+            <div class="status-item" onclick="copiarID()" style="cursor:pointer;"><span class="status-label">Meu ID</span><span id="userIdDisplay" class="status-val" style="font-size:10px;">...</span></div>
         </div>
-    </div>
 
-    <button class="btn-deposit" onclick="abrirModalValor()">➕ DEPOSITAR VIA PIX</button>
-
-    <div style="margin-top: 40px; color: #475569; font-size: 14px;">
-        <p>Aguardando início da rodada...</p>
-    </div>
-
-    <div id="modalValor" class="modal hidden">
-        <div class="modal-content">
-            <h3 style="margin-top:0;">Quanto deseja depositar?</h3>
-            <p style="font-size: 12px; color: #64748b;">Mínimo de R$ 10,00</p>
-            <input type="number" id="valorInputManual" placeholder="Ex: 20" min="10">
-            <button onclick="confirmarGerarPix()" style="background:var(--success); color:white; width:100%; padding:15px; border:none; border-radius:10px; font-weight:bold;">GERAR PIX AGORA</button>
-            <button onclick="fecharModais()" style="background:none; border:none; color:red; margin-top:15px; font-weight:bold;">CANCELAR</button>
+        <div id="menuLateral" class="hidden" style="position: absolute; top: 50px; left: 10px; background: #1e293b; border: 1px solid var(--primary); border-radius: 8px; width: 160px; z-index: 2000; text-align: left;">
+            <div class="menu-item" id="perfilNome" style="padding:12px; border-bottom: 1px solid #334155; font-weight:bold;">Carregando...</div>
+            <div class="menu-item" onclick="logout()" style="padding:12px; color:#ef4444; font-weight:bold; cursor:pointer;">🚪 Sair da Conta</div>
         </div>
-    </div>
 
-    <div id="modalPix" class="modal hidden">
-        <div class="modal-content">
-            <h3 style="margin-top:0;">Quase lá!</h3>
-            <p style="font-size: 12px;">Pague o PIX e o saldo cairá em instantes.</p>
-            <img id="qrImagem" src="" alt="QR Code PIX">
-            <textarea id="pixCopiaCola" readonly></textarea>
-            <button onclick="copiarPix()" style="background:#2563eb; color:white; width:100%; padding:12px; border:none; border-radius:10px; font-weight:bold; margin-top:10px;">COPIAR CÓDIGO PIX</button>
-            <button onclick="fecharModais()" style="background:none; border:none; color:red; margin-top:15px; font-weight:bold;">FECHAR</button>
+        <button class="btn-copy-link" onclick="copiarLinkJogo()">🔗 COPIAR LINK DO BINGO</button>
+
+        <div class="container-compra-topo">
+            <input type="number" id="qtdCartelas" value="1" min="1" class="input-compra">
+            <button onclick="comprarCartelas()" class="btn-compra">COMPRAR CARTELA</button>
         </div>
+
+        <div class="card">
+            <div class="caixa-premio" id="painelPremio"><div class="status-acumulando">CARREGANDO...</div></div>
+            <div class="layout-jogo">
+                <div id="bolaGrande" class="bola-sorteada-master">--</div>
+                <div class="painel-numeros" id="gradeNumeros"></div>
+            </div>
+        </div>
+        <div style="background: #0f172a; padding: 5px; font-size: 11px; color: var(--primary); font-weight: bold; border-bottom: 1px solid #334155;">MINHAS CARTELAS</div>
     </div>
 
-    <script>
-        const API = "https://bingoreal.onrender.com";
-        let USER_ID = localStorage.getItem('userId');
+    <div id="listaCartelas"></div>
+</div>
 
-        // 1. FUNÇÃO INICIAL: Cria o ID no MongoDB caso não exista
-        async function inicializar() {
-            if (!USER_ID) {
-                const nome = prompt("Bem-vindo ao Bingo Real! Digite seu nome para entrar:");
-                if (nome) {
-                    try {
-                        const res = await fetch(`${API}/criar-usuario`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                name: nome, 
-                                email: nome.toLowerCase().replace(/\s/g, '') + Date.now() + "@bingo.com" 
-                            })
-                        });
-                        const user = await res.json();
-                        if (user._id) {
-                            localStorage.setItem('userId', user._id);
-                            USER_ID = user._id;
-                            location.reload();
-                        }
-                    } catch (e) {
-                        alert("O servidor está acordando... tente novamente em 20 segundos.");
-                    }
-                }
-            } else {
-                document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8);
-                atualizarDados();
-                setInterval(atualizarDados, 5000); // Atualiza saldo a cada 5 segundos
-            }
-        }
+<div id="modalValor" class="modal hidden">
+    <div class="modal-content">
+        <h4 style="margin:0 0 10px 0;">DEPOSITAR</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 10px;">
+            <button class="btn-valor" onclick="setValor(10)">R$ 10</button>
+            <button class="btn-valor" onclick="setValor(20)">R$ 20</button>
+            <button class="btn-valor" onclick="setValor(50)">R$ 50</button>
+        </div>
+        <input type="number" id="valorInputManual" placeholder="Mín. R$ 10" style="color:black; background:#eee;">
+        <button onclick="confirmarGerarPix()" style="background: #22c55e; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">GERAR PIX</button>
+        <button onclick="fecharModais()" style="margin-top:8px; border:none; background:none; color:#666; font-size:12px; cursor:pointer;">Cancelar</button>
+    </div>
+</div>
 
-        // 2. ATUALIZA SALDO E NOME
-        async function atualizarDados() {
-            try {
-                const res = await fetch(`${API}/user-data/${USER_ID}`);
-                const user = await res.json();
-                document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
-                document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
-            } catch (e) {
-                console.log("Erro ao sincronizar...");
-            }
-        }
+<div id="modalPix" class="modal hidden">
+    <div class="modal-content">
+        <h4 style="margin:0;">PAGAMENTO PIX</h4>
+        <img id="qrImagem" style="width:180px; margin:10px 0;" src="">
+        <input type="text" id="pixCopiaCola" readonly style="display:none;">
+        <button class="btn-compra" style="width:100%" onclick="copiarCodigoPix()">COPIAR CÓDIGO</button>
+        <button onclick="fecharModais()" style="margin-top:10px; border:none; color:red; cursor:pointer;">Fechar</button>
+    </div>
+</div>
 
-        // 3. GERA O QR CODE REAL
-        async function confirmarGerarPix() {
-            const valor = document.getElementById('valorInputManual').value;
-            if (!valor || valor < 10) return alert("O valor mínimo é R$ 10,00");
+<script>
+    // LINK OFICIAL DO SEU RENDER
+    const API = "https://bingoreal.onrender.com";
+    let USER_ID = localStorage.getItem('userId');
 
-            try {
-                // Abre o modal de carregamento ou troca os modais
-                const res = await fetch(`${API}/gerar-pix`, {
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 2000);
+    }
+
+    async function inicializar() {
+        if (!USER_ID) {
+            const nome = prompt("Bem-vindo ao Bingo Real! Digite seu nome:");
+            if (nome) {
+                const res = await fetch(`${API}/criar-usuario`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: USER_ID, valor: valor })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name: nome, email: nome.toLowerCase() + Date.now() + "@bingo.com" })
                 });
-                const data = await res.json();
-                
-                if (data.qr_code_base64) {
-                    document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
-                    document.getElementById('pixCopiaCola').value = data.qr_code;
-                    document.getElementById('modalValor').classList.add('hidden');
-                    document.getElementById('modalPix').classList.remove('hidden');
-                } else {
-                    alert("Erro ao comunicar com o Mercado Pago. Verifique seu Access Token.");
-                }
-            } catch (e) {
-                alert("Erro na conexão. Tente novamente.");
+                const user = await res.json();
+                localStorage.setItem('userId', user._id);
+                USER_ID = user._id;
+                location.reload();
             }
+        } else {
+            iniciarGrade();
+            atualizarInterface();
+            setInterval(atualizarInterface, 5000);
         }
+    }
 
-        function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
-        function fecharModais() { 
-            document.getElementById('modalValor').classList.add('hidden'); 
-            document.getElementById('modalPix').classList.add('hidden'); 
+    function iniciarGrade() {
+        const grade = document.getElementById('gradeNumeros');
+        grade.innerHTML = '';
+        for (let i = 1; i <= 50; i++) grade.innerHTML += `<div class="num-check" id="num-${i}">${i}</div>`;
+    }
+
+    async function atualizarInterface() {
+        if(!USER_ID) return;
+        try {
+            const resUser = await fetch(`${API}/user-data/${USER_ID}`);
+            const user = await resUser.json();
+            document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
+            document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
+            document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8);
+            
+            // Simulação de prêmio e timer (Ajuste conforme as rotas do seu servidor)
+            document.getElementById('painelPremio').innerHTML = `<div class="status-acumulando">BINGO ATIVO</div>`;
+        } catch(e) {}
+    }
+
+    async function confirmarGerarPix() {
+        const val = document.getElementById('valorInputManual').value;
+        if (!val || val < 10) return alert("Mínimo R$ 10");
+        const res = await fetch(`${API}/gerar-pix`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ userId: USER_ID, valor: val }) 
+        });
+        const data = await res.json();
+        if (data.qr_code_base64) {
+            document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
+            document.getElementById('pixCopiaCola').value = data.qr_code;
+            document.getElementById('modalValor').classList.add('hidden');
+            document.getElementById('modalPix').classList.remove('hidden');
         }
+    }
 
-        function copiarPix() {
-            const copyText = document.getElementById("pixCopiaCola");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);
-            document.execCommand("copy");
-            alert("Código PIX copiado! Cole no seu banco.");
-        }
+    function toggleMenu() { document.getElementById('menuLateral').classList.toggle('hidden'); }
+    function fecharModais() { 
+        document.getElementById('modalValor').classList.add('hidden'); 
+        document.getElementById('modalPix').classList.add('hidden'); 
+    }
+    function setValor(v) { document.getElementById('valorInputManual').value = v; }
+    function copiarID() { navigator.clipboard.writeText(USER_ID).then(() => showToast("ID Copiado!")); }
+    function copiarCodigoPix() { navigator.clipboard.writeText(document.getElementById('pixCopiaCola').value).then(() => showToast("Código Copiado!")); }
+    function logout() { localStorage.clear(); location.reload(); }
 
-        window.onload = inicializar;
-    </script>
+    window.onload = inicializar;
+</script>
 </body>
 </html>
