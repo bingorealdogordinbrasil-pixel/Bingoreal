@@ -7,41 +7,69 @@
     <style>
         :root { --primary: #facc15; --bg: #020617; --card: #1e293b; --success: #22c55e; }
         
+        /* AJUSTE GLOBAL PARA FIXAR A TELA */
         html, body { 
-            overflow: hidden; 
             height: 100%; 
-            position: fixed; 
             width: 100%;
-            font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 0; 
+            margin: 0; 
+            padding: 0; 
+            font-family: sans-serif; 
+            background: var(--bg); 
+            color: white; 
+            overflow: hidden; /* Impede a rolagem da página inteira */
         }
+
         .hidden { display: none !important; }
 
-        /* TELAS DE AUTH (Login/Cadastro) - Mantendo o estilo do site */
+        /* ESTRUTURA DE TELA FLEXÍVEL */
+        #telaJogo {
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Ocupa exatamente a altura do navegador */
+            width: 100%;
+        }
+
+        /* PARTE SUPERIOR QUE NÃO MOVE */
+        .secao-fixa {
+            flex-shrink: 0;
+            z-index: 10;
+            background: var(--bg);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        /* ÁREA DE ROLAGEM DAS CARTELAS */
+        #listaCartelas { 
+            flex: 1; /* Ocupa todo o espaço que sobra embaixo */
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 8px; 
+            justify-content: center; 
+            padding: 15px 5px 40px 5px; /* Padding extra no final para respiro */
+            background: var(--bg); 
+            overflow-y: auto; /* Permite rolar apenas aqui */
+            -webkit-overflow-scrolling: touch; /* Rolagem suave em iPhones */
+        }
+
+        /* TELAS DE AUTH */
         .auth-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); z-index: 9999; display: flex; flex-direction: column;
             align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;
         }
         .auth-box { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid var(--primary); width: 100%; max-width: 320px; }
-        .auth-box h2 { color: var(--primary); margin: 0 0 15px 0; font-size: 24px; }
+        .auth-box h2 { color: var(--primary); margin: 0 0 15px 0; font-size: 24px; text-align: center; }
         .auth-box input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; font-size: 14px; }
         .auth-btn { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-bottom: 10px; }
-        .auth-toggle { color: #94a3b8; font-size: 13px; cursor: pointer; text-decoration: underline; }
+        .auth-toggle { color: #94a3b8; font-size: 13px; cursor: pointer; text-decoration: underline; text-align: center; display: block;}
 
-        /* NOTIFICAÇÃO PROFISSIONAL (TOAST) */
+        /* TOAST */
         #toast {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(15, 23, 42, 0.95); color: var(--primary);
             padding: 12px 24px; border-radius: 50px; border: 1px solid var(--primary);
             font-size: 13px; font-weight: bold; z-index: 10000;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: none; animation: fadeInOut 2s forwards;
-        }
-        @keyframes fadeInOut {
-            0% { opacity: 0; top: 10px; }
-            15% { opacity: 1; top: 20px; }
-            85% { opacity: 1; top: 20px; }
-            100% { opacity: 0; top: 10px; }
+            display: none;
         }
 
         /* HEADER */
@@ -49,52 +77,55 @@
         .menu-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
         .menu-btn div { width: 20px; height: 2px; background: white; border-radius: 2px; }
 
-        /* BARRA DE STATUS */
-        .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; align-items: center; }
+        /* STATUS */
+        .status-bar-topo { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #1e293b; padding: 8px 5px; border-bottom: 1px solid #334155; align-items: center; text-align: center; }
         .status-item { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #334155; }
         .status-item:last-child { border-right: none; }
         .status-label { font-size: 8px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
         .status-val { font-size: 12px; font-weight: bold; }
 
-        .secao-fixa { background: var(--bg); z-index: 100; position: relative; }
         .container-compra-topo { background: #0f172a; padding: 6px 12px; border-bottom: 1px solid #334155; display: flex; gap: 6px; align-items: center; justify-content: center; }
         .input-compra { width: 50px !important; text-align: center; margin: 0 !important; padding: 6px !important; color: white; background: #020617; border: 1px solid #334155; border-radius: 4px; font-size: 14px; }
         .btn-compra { flex: 1; max-width: 180px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; padding: 8px; font-size: 13px; }
-        .btn-copy-link { background: #334155; color: var(--primary); border: 1px solid var(--primary); padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 90%; max-width: 340px; margin: 10px auto; display: block; font-size: 11px; }
+        .btn-copy-link { background: #334155; color: var(--primary); border: 1px solid var(--primary); padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 90%; max-width: 340px; margin: 8px auto; display: block; font-size: 11px; }
 
+        /* AREA JOGO */
         .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px auto; max-width: 360px; box-sizing: border-box; }
         .layout-jogo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 5px; }
-        .bola-sorteada-master { width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; color: #000; border: 2px solid #78350f; flex-shrink: 0; }
-        .girando { animation: girarBola 0.15s infinite linear; }
-        @keyframes girarBola { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .bola-sorteada-master { 
+            width: 70px; height: 70px; 
+            background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            font-size: 30px; font-weight: 900; color: #000; border: 2px solid #78350f; 
+            flex-shrink: 0; 
+        }
+        .girando { animation: flashBola 0.4s ease-out; }
+        @keyframes flashBola { 
+            0% { transform: scale(0.6) rotate(-45deg); opacity: 0.5; } 
+            100% { transform: scale(1) rotate(0deg); opacity: 1; } 
+        }
 
         .painel-numeros { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #0f172a; padding: 4px; border-radius: 6px; flex: 1; }
         .num-check { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; background: #1e293b; color: #475569; border-radius: 2px; }
-        .num-check.ativo { background: var(--success); color: white; }
+        .num-check.ativo { background: var(--success); color: white; transition: background 0.3s; }
 
-        .caixa-premio { background: #064e3b; border: 1px solid var(--success); padding: 8px; border-radius: 8px; margin-bottom: 5px; min-height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; font-size: 14px; }
-        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-        .valor-revelado { color: #fff; font-size: 20px; font-weight: 900; }
+        .caixa-premio { background: #064e3b; border: 1px solid var(--success); padding: 8px; border-radius: 8px; margin-bottom: 5px; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .status-acumulando { color: var(--primary); animation: piscar 1.2s infinite; font-weight: bold; }
+        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-        #listaCartelas { 
-            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 15px 5px;
-            background: var(--bg); height: calc(100vh - 380px); overflow-y: auto; -webkit-overflow-scrolling: touch; 
-        }
-
-        .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 110px; height: fit-content; margin-bottom: 8px; }
+        .cartela { background: #f8fafc; color: #1e293b; padding: 5px; border-radius: 4px; width: 110px; margin-bottom: 8px; }
         .grid-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; }
-        .num-c { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 4px 0; display: flex; align-items: center; justify-content: center; }
+        .num-c { font-size: 10px; font-weight: bold; background: #e2e8f0; padding: 4px 0; display: flex; align-items: center; justify-content: center; text-align: center; }
         .marcado { background: var(--success) !important; color: white !important; }
 
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 3000; }
         .modal-content { background: white; padding: 15px; border-radius: 12px; color: black; width: 80%; max-width: 280px; text-align: center; }
-        .btn-valor { padding: 8px; border: 1px solid #2563eb; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: bold; cursor: pointer; font-size: 12px; margin: 2px; }
     </style>
 </head>
 <body>
 
-<div id="toast">Copiado com sucesso!</div>
+<div id="toast">Copiado!</div>
 
 <div id="telaLogin" class="auth-overlay hidden">
     <div class="auth-box">
@@ -121,18 +152,18 @@
     <div class="secao-fixa">
         <div class="header">
             <button class="menu-btn" onclick="toggleMenu()"><div></div><div></div><div></div></button>
-            <div style="font-weight:bold; color:var(--primary); font-size:14px;">BINGO REAL</div>
-            <button onclick="abrirModalValor()" style="background:var(--success); color:white; border:none; padding:6px 10px; border-radius:4px; font-weight:bold; font-size:12px; cursor:pointer;">PIX</button>
+            <div style="font-weight:bold; color:var(--primary);">BINGO REAL</div>
+            <button onclick="abrirModalValor()" style="background:var(--success); color:white; border:none; padding:6px 10px; border-radius:4px; font-weight:bold; cursor:pointer;">PIX</button>
         </div>
 
         <div class="status-bar-topo">
-            <div class="status-item"><span class="status-label">Tempo</span><span id="timerTxt" class="status-val" style="color:var(--primary);">05:00</span></div>
+            <div class="status-item"><span class="status-label">Tempo</span><span id="timerTxt" class="status-val" style="color:var(--primary);">--:--</span></div>
             <div class="status-item"><span class="status-label">Saldo</span><span id="playerSaldoStatus" class="status-val" style="color:var(--success);">R$ 0,00</span></div>
             <div class="status-item" onclick="copiarID()" style="cursor:pointer;"><span class="status-label">Meu ID</span><span id="userIdDisplay" class="status-val" style="font-size:10px;">...</span></div>
         </div>
 
         <div id="menuLateral" class="hidden" style="position: absolute; top: 50px; left: 10px; background: #1e293b; border: 1px solid var(--primary); border-radius: 8px; width: 160px; z-index: 2000; text-align: left;">
-            <div class="menu-item" id="perfilNome" style="padding:12px; border-bottom: 1px solid #334155; font-weight:bold;">Carregando...</div>
+            <div class="menu-item" id="perfilNome" style="padding:12px; border-bottom: 1px solid #334155; font-weight:bold;">Usuário</div>
             <div class="menu-item" onclick="logout()" style="padding:12px; color:#ef4444; font-weight:bold; cursor:pointer;">🚪 Sair</div>
         </div>
 
@@ -144,46 +175,45 @@
         </div>
 
         <div class="card">
-            <div class="caixa-premio" id="painelPremio"><div class="status-acumulando">ACUMULANDO...</div></div>
+            <div class="caixa-premio" id="painelPremio">
+                <div class="status-acumulando">💰 ACUMULANDO PRÊMIO...</div>
+            </div>
             <div class="layout-jogo">
                 <div id="bolaGrande" class="bola-sorteada-master">--</div>
                 <div class="painel-numeros" id="gradeNumeros"></div>
             </div>
         </div>
-        <div style="background: #0f172a; padding: 5px; font-size: 11px; color: var(--primary); font-weight: bold; border-bottom: 1px solid #334155;">MINHAS CARTELAS</div>
+        
+        <div style="background: #0f172a; padding: 6px; font-size: 11px; color: var(--primary); font-weight: bold; text-align: center; border-bottom: 1px solid #334155;">MINHAS CARTELAS</div>
     </div>
+
     <div id="listaCartelas"></div>
 </div>
 
 <div id="modalValor" class="modal hidden">
     <div class="modal-content">
         <h4 style="margin:0 0 10px 0;">DEPOSITAR</h4>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 10px;">
-            <button class="btn-valor" onclick="setValor(10)">R$ 10</button>
-            <button class="btn-valor" onclick="setValor(20)">R$ 20</button>
-            <button class="btn-valor" onclick="setValor(50)">R$ 50</button>
-        </div>
-        <input type="number" id="valorInputManual" placeholder="Mín. R$ 10" style="width:100%; padding:10px; margin-bottom:10px; color:black;">
+        <input type="number" id="valorInputManual" placeholder="Valor R$" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;">
         <button onclick="confirmarGerarPix()" style="background: #22c55e; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold;">GERAR PIX</button>
-        <button onclick="document.getElementById('modalValor').classList.add('hidden')" style="margin-top:8px; border:none; background:none; color:#666; font-size:12px;">Cancelar</button>
+        <button onclick="document.getElementById('modalValor').classList.add('hidden')" style="margin-top:8px; border:none; background:none; color:#666; cursor:pointer;">Cancelar</button>
     </div>
 </div>
 
 <div id="modalPix" class="modal hidden">
     <div class="modal-content">
-        <h4 style="margin:0;">PAGAMENTO PIX</h4>
-        <img id="qrImagem" style="width:180px; margin:10px 0;" src="">
-        <button class="btn-compra" style="width:100%" onclick="copiarCodigoPix()">COPIAR CÓDIGO</button>
-        <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="margin-top:10px; border:none; color:red;">Fechar</button>
+        <h4>PAGAMENTO PIX</h4>
+        <img id="qrImagem" style="width:180px; margin:10px 0; border:1px solid #eee;">
+        <button class="btn-compra" style="width:100%; background:var(--success);" onclick="copiarCodigoPix()">COPIAR CÓDIGO</button>
+        <button onclick="document.getElementById('modalPix').classList.add('hidden')" style="margin-top:10px; border:none; color:red; background:none; cursor:pointer;">Fechar</button>
     </div>
 </div>
 
 <script>
     const API = "https://bingoreal.onrender.com";
     let USER_ID = localStorage.getItem('userId');
-    let segundosRestantes = 0;
     let ultimaBolaSorteada = null;
-    let pixCopiaCola = "";
+    let segundosRestantes = 0;
+    let pixCopiaECola = "";
 
     function showToast(msg) {
         const t = document.getElementById('toast');
@@ -191,9 +221,27 @@
         setTimeout(() => { t.style.display = 'none'; }, 2000);
     }
 
+    function copiarID() {
+        if(USER_ID) {
+            navigator.clipboard.writeText(USER_ID);
+            showToast("ID Copiado!");
+        }
+    }
+
+    function copiarLinkJogo() {
+        navigator.clipboard.writeText(window.location.href);
+        showToast("Link Copiado!");
+    }
+
+    function copiarCodigoPix() {
+        if(pixCopiaECola) {
+            navigator.clipboard.writeText(pixCopiaECola);
+            showToast("Código Copiado!");
+        }
+    }
+
     function toggleMenu() { document.getElementById('menuLateral').classList.toggle('hidden'); }
     function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
-    function setValor(v) { document.getElementById('valorInputManual').value = v; }
     function mostrarCadastro() { document.getElementById('telaLogin').classList.add('hidden'); document.getElementById('telaCadastro').classList.remove('hidden'); }
     function mostrarLogin() { document.getElementById('telaCadastro').classList.add('hidden'); document.getElementById('telaLogin').classList.remove('hidden'); }
     function logout() { localStorage.clear(); location.reload(); }
@@ -203,7 +251,7 @@
         const senha = document.getElementById('loginSenha').value;
         const res = await fetch(`${API}/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email, senha })});
         if(res.ok) { const user = await res.json(); localStorage.setItem('userId', user._id); location.reload(); }
-        else alert("E-mail ou senha inválidos.");
+        else alert("Login inválido.");
     }
 
     async function executarCadastro() {
@@ -212,7 +260,6 @@
         const senha = document.getElementById('regSenha').value;
         const res = await fetch(`${API}/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, email, senha })});
         if(res.ok) { const user = await res.json(); localStorage.setItem('userId', user._id); location.reload(); }
-        else alert("Erro ao cadastrar.");
     }
 
     async function atualizarInterface() {
@@ -220,72 +267,100 @@
         try {
             const resStatus = await fetch(`${API}/game-status`);
             const jogo = await resStatus.json();
-            if (jogo.tempoSegundos !== undefined) segundosRestantes = jogo.tempoSegundos;
-
+            
             const resUser = await fetch(`${API}/user-data/${USER_ID}`);
             const user = await resUser.json();
 
-            document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
             document.getElementById('playerSaldoStatus').innerText = `R$ ${user.saldo.toFixed(2)}`;
+            document.getElementById('perfilNome').innerText = `👤 ${user.name.toUpperCase()}`;
             document.getElementById('userIdDisplay').innerText = USER_ID.substring(0,8) + "...";
+            segundosRestantes = jogo.tempoSegundos || 0;
 
             const painel = document.getElementById('painelPremio');
-            painel.innerHTML = (jogo.fase === 'sorteio') ? `<div class="valor-revelado">R$ ${jogo.premioAcumulado.toFixed(2)}</div>` : `<div class="status-acumulando">ACUMULANDO...</div>`;
+            
+            // Lógica para mostrar Ganhador ou Status
+            if (jogo.fase === 'finalizado' && jogo.ganhador) {
+                painel.innerHTML = `
+                    <div style="background: #facc15; color: #000; padding: 5px; border-radius: 8px; width: 100%; animation: flashBola 0.5s infinite alternate;">
+                        <div style="font-weight:bold; font-size:12px;">🏆 VENCEDOR: ${jogo.ganhador.toUpperCase()}</div>
+                        <div style="font-size:14px; font-weight:900;">PRÊMIO: R$ ${jogo.premioAcumulado.toFixed(2)}</div>
+                    </div>
+                `;
+            } else if (jogo.fase === 'acumulando') {
+                painel.innerHTML = `<div class="status-acumulando">💰 ACUMULANDO PRÊMIO...</div>`;
+            } else {
+                painel.innerHTML = `<div style="font-size:10px; color:var(--success); font-weight:bold;">🏆 PRÊMIO EM JOGO:</div><div style="font-size:20px; font-weight:900;">R$ ${jogo.premioAcumulado.toFixed(2)}</div>`;
+            }
 
             const bolas = jogo.bolas || [];
+            const elBola = document.getElementById('bolaGrande');
             if (bolas.length > 0) {
                 const novaBola = bolas[bolas.length - 1];
                 if (novaBola !== ultimaBolaSorteada) {
-                    document.getElementById('bolaGrande').innerText = novaBola;
+                    elBola.innerText = novaBola;
+                    elBola.classList.add('girando');
+                    setTimeout(() => elBola.classList.remove('girando'), 400);
                     ultimaBolaSorteada = novaBola;
                 }
+            } else {
+                elBola.innerText = "--";
+                ultimaBolaSorteada = null;
             }
 
-            document.querySelectorAll('.num-check').forEach(el => el.classList.remove('ativo'));
-            bolas.forEach(b => document.getElementById(`num-${b}`)?.classList.add('ativo'));
+            document.querySelectorAll('.num-check').forEach(el => {
+                const num = parseInt(el.innerText);
+                if (bolas.includes(num)) el.classList.add('ativo');
+                else el.classList.remove('ativo');
+            });
 
             document.getElementById('listaCartelas').innerHTML = (user.cartelas || []).map(c => `
                 <div class="cartela">
                     <div class="grid-cartela">${c.map(n => `<div class="num-c ${bolas.includes(n)?'marcado':''}">${n}</div>`).join('')}</div>
                 </div>
             `).join('');
-        } catch(e) {}
+
+        } catch(e) { console.error("Erro interface", e); }
+    }
+
+    async function comprarCartelas() {
+        const qtd = document.getElementById('qtdCartelas').value;
+        const res = await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) });
+        if(res.ok) { showToast("Cartela comprada!"); atualizarInterface(); }
+        else alert("Saldo insuficiente ou rodada em andamento.");
     }
 
     async function confirmarGerarPix() {
         const val = document.getElementById('valorInputManual').value;
+        if(!val || val <= 0) return alert("Insira um valor válido");
+        
         const res = await fetch(`${API}/gerar-pix`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId: USER_ID, valor: val }) });
         const data = await res.json();
+        pixCopiaECola = data.qr_code;
         document.getElementById('qrImagem').src = `data:image/png;base64,${data.qr_code_base64}`;
-        pixCopiaCola = data.qr_code;
         document.getElementById('modalValor').classList.add('hidden');
         document.getElementById('modalPix').classList.remove('hidden');
     }
 
-    function copiarCodigoPix() { navigator.clipboard.writeText(pixCopiaCola); showToast("Pix Copiado!"); }
-
-    async function comprarCartelas() {
-        const qtd = document.getElementById('qtdCartelas').value;
-        await fetch(`${API}/comprar-com-saldo`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ usuarioId: USER_ID, quantidade: qtd }) });
-        atualizarInterface();
-    }
-
     setInterval(() => {
+        const t = document.getElementById('timerTxt');
         if (segundosRestantes > 0) {
             segundosRestantes--;
-            const min = Math.floor(segundosRestantes / 60), seg = segundosRestantes % 60;
-            document.getElementById('timerTxt').innerText = `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
-        } else document.getElementById('timerTxt').innerText = "SORTEIO!";
+            const min = Math.floor(segundosRestantes/60), seg = segundosRestantes%60;
+            t.innerText = `${min}:${seg.toString().padStart(2,'0')}`;
+        } else { t.innerText = "SORTEIO!"; }
     }, 1000);
 
-    if(!USER_ID) {
-        document.getElementById('telaLogin').classList.remove('hidden');
-    } else {
-        document.getElementById('telaJogo').classList.remove('hidden');
-        const grade = document.getElementById('gradeNumeros');
-        for (let i = 1; i <= 50; i++) grade.innerHTML += `<div class="num-check" id="num-${i}">${i}</div>`;
-        setInterval(atualizarInterface, 3000);
-    }
+    window.onload = () => {
+        if(!USER_ID) document.getElementById('telaLogin').classList.remove('hidden');
+        else {
+            document.getElementById('telaJogo').classList.remove('hidden');
+            const grade = document.getElementById('gradeNumeros');
+            grade.innerHTML = "";
+            for (let i = 1; i <= 50; i++) grade.innerHTML += `<div class="num-check">${i}</div>`;
+            setInterval(atualizarInterface, 3000);
+            atualizarInterface();
+        }
+    };
 </script>
 </body>
 </html>
