@@ -1,17 +1,19 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const axios = require('axios'); // Para chamar a API do Mercado Pago
+const axios = require('axios'); // Necessário para gerar o PIX
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// CONEXÃO MONGO
+// CONEXÃO MONGO (Com sua senha: GQ81qipKL3o2Lpoa)
 const mongoURI = "mongodb+srv://admin:GQ81qipKL3o2Lpoa@cluster0.mongodb.net/bingoReal?retryWrites=true&w=majority";
-mongoose.connect(mongoURI).then(() => console.log("✅ Servidor e Banco Online!"));
 
-// MODELO DE USUÁRIO
+mongoose.connect(mongoURI)
+    .then(() => console.log("✅ Banco de Dados Conectado!"))
+    .catch((err) => console.error("❌ Erro Mongo:", err));
+
 const User = mongoose.model('User', new mongoose.Schema({
     name: String,
     email: { type: String, unique: true },
@@ -22,44 +24,35 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhadores: [] };
 
-// --- ROTA PARA GERAR PIX REAL ---
+// --- ROTA PARA GERAR QR CODE PIX ---
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
-
+    
     try {
-        // Integração com Mercado Pago (Exemplo de chamada de API)
-        // Você precisará do seu Access Token do Mercado Pago
+        // Substitua 'SEU_ACCESS_TOKEN' pelo seu Token do Mercado Pago
         const response = await axios.post('https://api.mercadopago.com/v1/payments', {
             transaction_amount: parseFloat(valor),
-            description: `Depósito Bingo Real - ID ${userId}`,
+            description: `Depósito Bingo - ID ${userId}`,
             payment_method_id: 'pix',
-            payer: {
-                email: 'pagador@exemplo.com',
-                first_name: 'Jogador',
-                last_name: 'Bingo'
-            }
+            payer: { email: 'contato@bingoreal.com' }
         }, {
-            headers: {
-                'Authorization': `Bearer SEU_ACCESS_TOKEN_AQUI`, // Coloque seu Token aqui
-                'X-Idempotency-Key': Math.random().toString()
+            headers: { 
+                'Authorization': `Bearer SEU_ACCESS_TOKEN_AQUI`,
+                'X-Idempotency-Key': Math.random().toString() 
             }
         });
 
-        const data = response.data;
-        
-        // Retorna o QR Code em Base64 e o código Copia e Cola
         res.json({
-            qr_code: data.point_of_interaction.transaction_data.qr_code,
-            qr_code_base64: data.point_of_interaction.transaction_data.qr_code_base64
+            qr_code: response.data.point_of_interaction.transaction_data.qr_code,
+            qr_code_base64: response.data.point_of_interaction.transaction_data.qr_code_base64
         });
-
     } catch (error) {
-        console.error("Erro ao gerar PIX:", error.response?.data || error.message);
-        res.status(500).json({ error: "Falha ao gerar pagamento" });
+        res.status(500).json({ error: "Erro ao gerar PIX" });
     }
 });
 
-// ... (Mantenha as outras rotas /game-status, /comprar-com-saldo, etc.)
+// MOTOR DO JOGO E OUTRAS ROTAS (Mantenha o restante como enviado anteriormente)
+// ...
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("Servidor rodando na porta " + PORT));
+app.listen(PORT, () => console.log("Servidor ativo na porta " + PORT));
