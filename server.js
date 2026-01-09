@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 const { MercadoPagoConfig, Payment } = require('mercadopago');
 
 const app = express();
@@ -8,26 +9,24 @@ app.use(cors());
 app.use(express.json());
 
 // CONFIGURAÇÃO MERCADO PAGO
-const client = new MercadoPagoConfig({ 
-    accessToken: process.env.MP_ACCESS_TOKEN 
-});
+const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
 const payment = new Payment(client);
 
 // CONEXÃO MONGODB
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("MongoDB Online"))
-    .catch(err => console.error("Erro Banco:", err));
+mongoose.connect(process.env.MONGO_URI);
+
+// --- ESTA PARTE FAZ O BINGO APARECER ---
+app.use(express.static(__dirname)); 
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+// ---------------------------------------
 
 const User = mongoose.model('User', new mongoose.Schema({
     name: String, email: { type: String, unique: true }, saldo: { type: Number, default: 0 }
 }));
 
-// ROTA PARA O CRON-JOB ACORDAR O SERVIDOR
-app.get('/', (req, res) => {
-    res.send("Servidor Bingo Real Ativo e Operante!");
-});
-
-// ROTAS DE USUÁRIO E PIX
 app.post('/criar-usuario', async (req, res) => {
     try {
         let user = await User.findOne({ email: req.body.email });
@@ -60,4 +59,4 @@ app.post('/gerar-pix', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("Bingo Real rodando na porta " + PORT));
+app.listen(PORT, () => console.log("Bingo Real Online"));
