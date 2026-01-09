@@ -15,18 +15,14 @@ const payment = new Payment(client);
 // CONEXÃO MONGODB
 mongoose.connect(process.env.MONGO_URI);
 
-// --- ESTA PARTE FAZ O BINGO APARECER ---
+// --- ESTA PARTE FAZ O JOGO APARECER NO LINK ---
 app.use(express.static(__dirname)); 
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
-// ---------------------------------------
 
-const User = mongoose.model('User', new mongoose.Schema({
-    name: String, email: { type: String, unique: true }, saldo: { type: Number, default: 0 }
-}));
-
+// ROTAS DO JOGO
 app.post('/criar-usuario', async (req, res) => {
     try {
         let user = await User.findOne({ email: req.body.email });
@@ -34,6 +30,10 @@ app.post('/criar-usuario', async (req, res) => {
         res.json(user);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+const User = mongoose.model('User', new mongoose.Schema({
+    name: String, email: { type: String, unique: true }, saldo: { type: Number, default: 0 }
+}));
 
 app.get('/user-data/:id', async (req, res) => {
     try {
@@ -59,4 +59,4 @@ app.post('/gerar-pix', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("Bingo Real Online"));
+app.listen(PORT, () => console.log("Bingo Rodando!"));
