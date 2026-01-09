@@ -30,7 +30,15 @@ const User = mongoose.model('User', new mongoose.Schema({
 }));
 
 // --- MOTOR DO JOGO ---
-let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null };
+// Adicionado cartelaVencedora e vitoriaRegistrada para controle
+let jogo = { 
+    bolas: [], 
+    fase: "acumulando", 
+    premioAcumulado: 0, 
+    tempoSegundos: 300, 
+    ganhador: null,
+    cartelaVencedora: null 
+};
 
 setInterval(async () => {
     if (jogo.fase === "acumulando") {
@@ -40,12 +48,12 @@ setInterval(async () => {
             jogo.fase = "sorteio";
         }
     } else if (jogo.fase === "sorteio") {
-        // --- ALTERADO: SORTEIA A CADA 3 SEGUNDOS ---
         if (Math.abs(jogo.tempoSegundos) % 3 === 0) {
             await realizarSorteio();
         }
         jogo.tempoSegundos--;
     } else if (jogo.fase === "finalizado") {
+        // Aguarda 15 segundos exibindo o vencedor e reseta
         if (Math.abs(jogo.tempoSegundos) % 15 === 0) {
             reiniciarGlobal();
         }
@@ -63,16 +71,24 @@ async function realizarSorteio() {
     
     jogo.bolas.push(bola);
 
+    // Busca apenas usuários que possuem cartelas
     const todosUsuarios = await User.find({ "cartelas.0": { $exists: true } });
+    
     for (let u of todosUsuarios) {
         for (let c of u.cartelas) {
+            // Verifica se todos os números da cartela "c" estão no array de "bolas"
             const ganhou = c.every(num => jogo.bolas.includes(num));
+            
             if (ganhou) {
                 jogo.ganhador = u.name;
+                jogo.cartelaVencedora = c; // Guarda a cartela específica que ganhou
                 jogo.fase = "finalizado";
-                jogo.tempoSegundos = 0; // Inicia contador de 15s para reiniciar
+                jogo.tempoSegundos = 0; 
                 
+                // Paga o prêmio ao vencedor
                 await User.findByIdAndUpdate(u._id, { $inc: { saldo: jogo.premioAcumulado } });
+                
+                // Limpa as cartelas de TODOS os jogadores para a próxima rodada
                 await User.updateMany({}, { $set: { cartelas: [] } });
                 return;
             }
@@ -81,7 +97,14 @@ async function realizarSorteio() {
 }
 
 function reiniciarGlobal() {
-    jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null };
+    jogo = { 
+        bolas: [], 
+        fase: "acumulando", 
+        premioAcumulado: 0, 
+        tempoSegundos: 300, 
+        ganhador: null,
+        cartelaVencedora: null 
+    };
 }
 
 // --- ROTAS DO JOGO ---
@@ -124,9 +147,7 @@ app.post('/comprar-com-saldo', async (req, res) => {
     } else res.status(400).json({ error: "Saldo insuficiente ou fase incorreta" });
 });
 
-// --- ROTAS ADMINISTRATIVAS (PARA O GERENTE) ---
-
-// Lista todos os usuários e saldos
+// --- ROTAS ADMINISTRATIVAS ---
 app.get('/admin/users', async (req, res) => {
     try {
         const users = await User.find({}, 'name saldo _id').sort({ name: 1 });
@@ -134,7 +155,6 @@ app.get('/admin/users', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// Adiciona saldo manualmente
 app.post('/adicionar-saldo-manual', async (req, res) => {
     const { userId, valor } = req.body;
     try {
@@ -144,13 +164,12 @@ app.post('/adicionar-saldo-manual', async (req, res) => {
     } catch (e) { res.status(500).json({ message: "Erro ao processar ID" }); }
 });
 
-// Reseta o jogo manualmente
 app.post('/reset-game', (req, res) => {
     reiniciarGlobal();
     res.json({ success: true });
 });
 
-// --- PAGAMENTOS E WEBHOOK ---
+// --- PAGAMENTOS ---
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
     try {
