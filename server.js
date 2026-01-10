@@ -115,7 +115,7 @@ async function reiniciarGlobal() {
     }
 }
 
-// --- ROTAS DO GERENTE (CONCERTADAS) ---
+// --- ROTAS DO GERENTE ---
 
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
@@ -127,12 +127,11 @@ app.post('/admin/dashboard', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// ESTA É A ROTA QUE O SEU HTML CHAMA PARA O NOME SUMIR
 app.post('/admin/finalizar-saque', async (req, res) => {
     const { senha, saqueId } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha incorreta" });
     try {
-        await Withdrawal.findByIdAndDelete(saqueId); // Apaga do banco
+        await Withdrawal.findByIdAndDelete(saqueId); 
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: "Erro ao deletar" }); }
 });
@@ -143,6 +142,17 @@ app.post('/admin/dar-bonus', async (req, res) => {
     try {
         await User.findByIdAndUpdate(userId, { $inc: { saldo: parseFloat(valor) } });
         res.json({ success: true });
+    } catch (e) { res.status(500).send(); }
+});
+
+// --- ROTA TOP 10 (REVISADA) ---
+app.get('/top-ganhadores', async (req, res) => {
+    try {
+        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } })
+            .sort({ valorLiberadoSaque: -1 })
+            .limit(10)
+            .select('name valorLiberadoSaque');
+        res.json(tops);
     } catch (e) { res.status(500).send(); }
 });
 
