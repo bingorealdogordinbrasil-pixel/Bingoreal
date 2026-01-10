@@ -90,7 +90,6 @@ async function realizarSorteio() {
             });
         }
         
-        // Antes de finalizar, salva o lucro desta rodada no acumulado geral
         lucroGeralAcumulado += (jogo.totalVendasRodada - jogo.premioAcumulado);
 
         jogo.ganhador = ganhadoresNestaRodada.length > 1 ? `${ganhadoresNestaRodada.length} Ganhadores` : ganhadoresNestaRodada[0].name;
@@ -104,6 +103,17 @@ async function realizarSorteio() {
 function reiniciarGlobal() {
     jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
 }
+
+// ROTA TOP 10 GANHADORES
+app.get('/top-ganhadores', async (req, res) => {
+    try {
+        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } })
+            .sort({ valorLiberadoSaque: -1 })
+            .limit(10)
+            .select('name valorLiberadoSaque');
+        res.json(tops);
+    } catch (e) { res.status(500).send(); }
+});
 
 // COMPRA DE CARTELA
 app.post('/comprar-com-saldo', async (req, res) => {
@@ -130,24 +140,20 @@ app.post('/comprar-com-saldo', async (req, res) => {
     } else res.status(400).send();
 });
 
-// DASHBOARD DO GERENTE (LUCRO ATUAL + TOTAL)
+// DASHBOARD DO GERENTE
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
     const jogadores = await User.find({}, 'name email saldo valorLiberadoSaque _id');
     const saques = await Withdrawal.find().sort({ data: -1 });
-    
     const lucroDestaRodada = jogo.totalVendasRodada - jogo.premioAcumulado;
-
     res.json({ 
         jogadores, 
         saques, 
         lucroRodada: lucroDestaRodada, 
-        lucroTotalHistorico: lucroGeralAcumulado + lucroDestaRodada, // Soma o passado com o presente
+        lucroTotalHistorico: lucroGeralAcumulado + lucroDestaRodada,
         vendasRodada: jogo.totalVendasRodada
     });
 });
-
-// --- REGRAS DE SAQUE E PIX (MANTIDAS) ---
 
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
@@ -189,7 +195,7 @@ app.post('/solicitar-saque', async (req, res) => {
 app.post('/admin/dar-bonus', async (req, res) => {
     const { senha, userId, valor } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).send();
-    await User.findByIdAndUpdate(userId, { $inc: { saldo: parseFloat(valor) } }); // Bônus não saca
+    await User.findByIdAndUpdate(userId, { $inc: { saldo: parseFloat(valor) } });
     res.json({ success: true });
 });
 
@@ -221,4 +227,4 @@ app.get('/user-data/:id', async (req, res) => {
 });
 
 app.listen(process.env.PORT || 10000);
-    
+                             
