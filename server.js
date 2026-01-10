@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require('express'); // Corrigido para minúsculo
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
@@ -89,12 +89,14 @@ app.post('/login', async (req, res) => {
     u ? res.json(u) : res.status(401).send();
 });
 
-// --- 👤 ROTAS DO GERENTE (PARA O ADMIN.HTML) ---
+// --- 👤 ROTAS DE GERENTE (PARA VER LUCROS E DAR BÔNUS) ---
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
-    const jogadores = await User.find({}, 'name email saldo _id');
-    const saques = await Withdrawal.find().sort({ data: -1 });
-    res.json({ jogadores, saques });
+    try {
+        const jogadores = await User.find({}, 'name email saldo _id');
+        const saques = await Withdrawal.find().sort({ data: -1 });
+        res.json({ jogadores, saques });
+    } catch (e) { res.status(500).send(); }
 });
 
 app.post('/admin/dar-bonus', async (req, res) => {
@@ -106,11 +108,4 @@ app.post('/admin/dar-bonus', async (req, res) => {
     } catch (e) { res.status(400).send(); }
 });
 
-app.post('/admin/finalizar-saque', async (req, res) => {
-    if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
-    await Withdrawal.findByIdAndDelete(req.body.saqueId);
-    res.json({ success: true });
-});
-
-// Outras rotas (Pix, Comprar, etc) devem continuar abaixo...
 app.listen(process.env.PORT || 10000);
