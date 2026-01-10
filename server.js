@@ -2,11 +2,25 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const bcrypt = require('bcrypt'); // Segurança de Senha
+const rateLimit = require('express-rate-limit'); // Anti-Robô
+const helmet = require('helmet'); // Proteção de Cabeçalho
 const { MercadoPagoConfig, Payment } = require('mercadopago');
 
 const app = express();
+
+// --- 🛡️ CAMADA 1: SEGURANÇA DE REDE ---
+app.use(helmet()); // Protege contra vulnerabilidades web conhecidas
 app.use(cors());
 app.use(express.json());
+
+// Limita cada IP a 100 requisições por 15 minutos
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: "Muitas requisições vindas deste IP. Tente novamente mais tarde."
+});
+app.use('/login', limiter); // Protege especificamente o login contra força bruta
 
 app.use(express.static(path.join(__dirname, '/')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
@@ -25,13 +39,13 @@ const mongoURI = "mongodb+srv://admin:bingoreal123@cluster0.ap7q4ev.mongodb.net/
 mongoose.connect(mongoURI);
 
 const User = mongoose.model('User', new mongoose.Schema({
-    name: String, 
-    email: { type: String, unique: true }, 
-    senha: String,
-    saldo: { type: Number, default: 0 }, 
+    name: { type: String, required: true },
+    email: { type: String, unique: true, required: true },
+    senha: { type: String, required: true }, // Será guardada como HASH
+    saldo: { type: Number, default: 0 },
     cartelas: { type: Array, default: [] },
-    totalApostado: { type: Number, default: 0 }, // Registra quanto ele jogou
-    totalRecebido: { type: Number, default: 0 }  // Registra depósitos + bônus
+    totalApostado: { type: Number, default: 0 },
+    totalRecebido: { type: Number, default: 0 }
 }));
 
 const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
@@ -44,15 +58,7 @@ const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
 }));
 
 // --- MOTOR DO JOGO ---
-let jogo = { 
-    bolas: [], 
-    fase: "acumulando", 
-    premioAcumulado: 0, 
-    tempoSegundos: 300, 
-    ganhador: null,
-    valorGanho: 0,
-    totalVendasRodada: 0 
-};
+let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
 
 setInterval(async () => {
     if (jogo.fase === "acumulando") {
@@ -92,26 +98,40 @@ function reiniciarGlobal() {
     jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
 }
 
-// --- ROTAS DO JOGO ---
-app.get('/game-status', (req, res) => res.json(jogo));
-
-app.post('/login', async (req, res) => {
-    const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
-    u ? res.json(u) : res.status(401).send();
-});
+// --- 🛡️ ROTAS PROTEGIDAS ---
 
 app.post('/register', async (req, res) => {
-    try { const u = new User(req.body); await u.save(); res.json(u); } catch(e) { res.status(400).send(); }
+    try {
+        const { name, email, senha } = req.body;
+        // Criptografa a senha antes de salvar
+        const salt = await bcrypt.genSalt(10);
+        const senhaHash = await bcrypt.hash(senha, salt);
+        
+        const u = new User({ name, email, senha: senhaHash });
+        await u.save();
+        res.json({ success: true });
+    } catch(e) { res.status(400).send("Erro ao registrar."); }
 });
 
-app.get('/user-data/:id', async (req, res) => {
-    try { const u = await User.findById(req.params.id); res.json(u); } catch (e) { res.status(404).send(); }
+app.post('/login', async (req, res) => {
+    try {
+        const u = await User.findOne({ email: req.body.email });
+        if (u && await bcrypt.compare(req.body.senha, u.senha)) {
+            res.json(u);
+        } else {
+            res.status(401).send("Credenciais inválidas.");
+        }
+    } catch (e) { res.status(500).send(); }
 });
 
 app.post('/comprar-com-saldo', async (req, res) => {
     const { usuarioId, quantidade } = req.body;
+    // Bloqueia quantidades negativas ou absurdas
+    if (quantidade <= 0 || quantidade > 100) return res.status(400).send();
+
     const user = await User.findById(usuarioId);
     const custo = parseInt(quantidade) * 2;
+
     if (user && user.saldo >= custo && jogo.fase === "acumulando") {
         let novas = [];
         for (let i = 0; i < quantidade; i++) {
@@ -122,7 +142,6 @@ app.post('/comprar-com-saldo', async (req, res) => {
             }
             novas.push(n.sort((a,b)=>a-b));
         }
-        // Registra a aposta no totalApostado
         await User.findByIdAndUpdate(usuarioId, { 
             $inc: { saldo: -custo, totalApostado: custo }, 
             $push: { cartelas: { $each: novas } } 
@@ -133,92 +152,17 @@ app.post('/comprar-com-saldo', async (req, res) => {
     } else res.status(400).send();
 });
 
-// --- PIX ---
-app.post('/gerar-pix', async (req, res) => {
-    const { userId, valor } = req.body;
-    try {
-        const response = await payment.create({
-            body: {
-                transaction_amount: parseFloat(valor),
-                description: `Bingo Real`,
-                payment_method_id: 'pix',
-                payer: { email: 'contato@bingoreal.com' },
-                external_reference: userId
-            }
-        });
-        res.json({
-            qr_code: response.point_of_interaction.transaction_data.qr_code,
-            qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64
-        });
-    } catch (e) { res.status(500).send(); }
-});
-
-app.post('/webhook', async (req, res) => {
-    const { action, data } = req.body;
-    if (action === "payment.updated") {
-        try {
-            const p = await payment.get({ id: data.id });
-            if (p.status === "approved") {
-                // Registra o depósito no totalRecebido
-                await User.findByIdAndUpdate(p.external_reference, { 
-                    $inc: { saldo: p.transaction_amount, totalRecebido: p.transaction_amount } 
-                });
-            }
-        } catch (e) {}
-    }
-    res.sendStatus(200);
-});
-
-// --- GERENTE (ADMIN) ---
-app.post('/admin/dashboard', async (req, res) => {
-    if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
-    const jogadores = await User.find({}, 'name email saldo totalApostado totalRecebido _id');
-    const saques = await Withdrawal.find().sort({ data: -1 });
-    
-    // Calcula o saldo total no banco para o gerente
-    const bancoJogadores = jogadores.reduce((acc, curr) => acc + curr.saldo, 0);
-
-    res.json({ 
-        jogadores, 
-        saques, 
-        lucroRodada: jogo.totalVendasRodada - jogo.premioAcumulado,
-        bancoJogadores: bancoJogadores
-    });
-});
-
-app.post('/admin/dar-bonus', async (req, res) => {
-    const { senha, userId, valor } = req.body;
-    if (senha !== SENHA_ADMIN) return res.status(401).send();
-    try {
-        const v = parseFloat(valor);
-        // Bônus também entra no totalRecebido para exigir jogo
-        const u = await User.findByIdAndUpdate(userId, { 
-            $inc: { saldo: v, totalRecebido: v } 
-        }, { new: true });
-        res.json({ success: true, novoSaldo: u.saldo });
-    } catch (e) { res.status(400).send(); }
-});
-
-app.post('/admin/finalizar-saque', async (req, res) => {
-    if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
-    await Withdrawal.findByIdAndDelete(req.body.saqueId);
-    res.json({ success: true });
-});
-
+// --- SAQUE COM TRAVA DE ROLLOVER ---
 app.post('/solicitar-saque', async (req, res) => {
     const { userId, valor, chavePix } = req.body;
     const v = parseFloat(valor);
     try {
         const user = await User.findById(userId);
-        
         if (!user) return res.status(404).send();
 
-        // TRAVA DE SEGURANÇA: totalApostado deve ser >= totalRecebido
+        // SEGURANÇA: Verificação de ROLLOVER (Anti-fraude)
         if (user.totalApostado < user.totalRecebido) {
-            const falta = user.totalRecebido - user.totalApostado;
-            return res.status(400).json({ 
-                error: `Você precisa apostar mais R$ ${falta.toFixed(2)} para liberar o saque.` 
-            });
+            return res.status(400).json({ error: "Você precisa apostar o valor total depositado antes de sacar." });
         }
 
         if (user.saldo >= v && v >= 20) {
@@ -226,10 +170,39 @@ app.post('/solicitar-saque', async (req, res) => {
             const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
             await pedido.save();
             res.json({ success: true });
-        } else {
-            res.status(400).json({ error: "Saldo insuficiente ou valor mínimo de R$ 20" });
-        }
+        } else res.status(400).json({ error: "Saldo insuficiente." });
     } catch (e) { res.status(500).send(); }
+});
+
+// --- ADMIN ---
+app.post('/admin/dashboard', async (req, res) => {
+    if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
+    const jogadores = await User.find({}, 'name email saldo totalApostado totalRecebido _id');
+    const saques = await Withdrawal.find().sort({ data: -1 });
+    res.json({ jogadores, saques, lucroRodada: jogo.totalVendasRodada - jogo.premioAcumulado });
+});
+
+app.post('/admin/dar-bonus', async (req, res) => {
+    if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
+    const v = parseFloat(req.body.valor);
+    await User.findByIdAndUpdate(req.body.userId, { $inc: { saldo: v, totalRecebido: v } });
+    res.json({ success: true });
+});
+
+// --- WEBHOOK (SÓ ACEITA REQUISIÇÕES REAIS DO MP) ---
+app.post('/webhook', async (req, res) => {
+    const { action, data } = req.body;
+    if (action === "payment.updated") {
+        try {
+            const p = await payment.get({ id: data.id });
+            if (p.status === "approved") {
+                await User.findByIdAndUpdate(p.external_reference, { 
+                    $inc: { saldo: p.transaction_amount, totalRecebido: p.transaction_amount } 
+                });
+            }
+        } catch (e) {}
+    }
+    res.sendStatus(200);
 });
 
 app.listen(process.env.PORT || 10000);
