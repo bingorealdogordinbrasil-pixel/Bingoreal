@@ -29,7 +29,9 @@ const User = mongoose.model('User', new mongoose.Schema({
     email: { type: String, unique: true }, 
     senha: String,
     saldo: { type: Number, default: 0 }, 
-    cartelas: { type: Array, default: [] }
+    cartelas: { type: Array, default: [] },
+    totalApostado: { type: Number, default: 0 }, // Registra quanto ele jogou
+    totalRecebido: { type: Number, default: 0 }  // Registra depósitos + bônus
 }));
 
 const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
@@ -120,7 +122,11 @@ app.post('/comprar-com-saldo', async (req, res) => {
             }
             novas.push(n.sort((a,b)=>a-b));
         }
-        await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { cartelas: { $each: novas } } });
+        // Registra a aposta no totalApostado
+        await User.findByIdAndUpdate(usuarioId, { 
+            $inc: { saldo: -custo, totalApostado: custo }, 
+            $push: { cartelas: { $each: novas } } 
+        });
         jogo.premioAcumulado += (custo * 0.25);
         jogo.totalVendasRodada += custo;
         res.json({ success: true });
@@ -153,7 +159,10 @@ app.post('/webhook', async (req, res) => {
         try {
             const p = await payment.get({ id: data.id });
             if (p.status === "approved") {
-                await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
+                // Registra o depósito no totalRecebido
+                await User.findByIdAndUpdate(p.external_reference, { 
+                    $inc: { saldo: p.transaction_amount, totalRecebido: p.transaction_amount } 
+                });
             }
         } catch (e) {}
     }
@@ -163,12 +172,17 @@ app.post('/webhook', async (req, res) => {
 // --- GERENTE (ADMIN) ---
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
-    const jogadores = await User.find({}, 'name email saldo _id');
+    const jogadores = await User.find({}, 'name email saldo totalApostado totalRecebido _id');
     const saques = await Withdrawal.find().sort({ data: -1 });
+    
+    // Calcula o saldo total no banco para o gerente
+    const bancoJogadores = jogadores.reduce((acc, curr) => acc + curr.saldo, 0);
+
     res.json({ 
         jogadores, 
         saques, 
-        lucroRodada: jogo.totalVendasRodada - jogo.premioAcumulado 
+        lucroRodada: jogo.totalVendasRodada - jogo.premioAcumulado,
+        bancoJogadores: bancoJogadores
     });
 });
 
@@ -176,7 +190,11 @@ app.post('/admin/dar-bonus', async (req, res) => {
     const { senha, userId, valor } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).send();
     try {
-        const u = await User.findByIdAndUpdate(userId, { $inc: { saldo: parseFloat(valor) } }, { new: true });
+        const v = parseFloat(valor);
+        // Bônus também entra no totalRecebido para exigir jogo
+        const u = await User.findByIdAndUpdate(userId, { 
+            $inc: { saldo: v, totalRecebido: v } 
+        }, { new: true });
         res.json({ success: true, novoSaldo: u.saldo });
     } catch (e) { res.status(400).send(); }
 });
@@ -192,14 +210,26 @@ app.post('/solicitar-saque', async (req, res) => {
     const v = parseFloat(valor);
     try {
         const user = await User.findById(userId);
-        if (user && user.saldo >= v && v >= 20) {
+        
+        if (!user) return res.status(404).send();
+
+        // TRAVA DE SEGURANÇA: totalApostado deve ser >= totalRecebido
+        if (user.totalApostado < user.totalRecebido) {
+            const falta = user.totalRecebido - user.totalApostado;
+            return res.status(400).json({ 
+                error: `Você precisa apostar mais R$ ${falta.toFixed(2)} para liberar o saque.` 
+            });
+        }
+
+        if (user.saldo >= v && v >= 20) {
             await User.findByIdAndUpdate(userId, { $inc: { saldo: -v } });
             const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
             await pedido.save();
             res.json({ success: true });
-        } else res.status(400).json({ error: "Saldo insuficiente" });
+        } else {
+            res.status(400).json({ error: "Saldo insuficiente ou valor mínimo de R$ 20" });
+        }
     } catch (e) { res.status(500).send(); }
 });
 
 app.listen(process.env.PORT || 10000);
-         
