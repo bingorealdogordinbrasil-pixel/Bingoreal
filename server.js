@@ -11,8 +11,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '/')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-// --- CONFIGURAÇÃO DE SEGURANÇA DO ADMIN ---
-const SENHA_ADMIN = "bingo2026"; // Mude esta senha se desejar
+// --- CONFIGURAÇÃO DE SEGURANÇA ---
+const SENHA_ADMIN = "bingo2026"; 
 
 // --- MERCADO PAGO ---
 const client = new MercadoPagoConfig({ 
@@ -29,10 +29,10 @@ const User = mongoose.model('User', new mongoose.Schema({
     email: { type: String, unique: true }, 
     senha: String,
     saldo: { type: Number, default: 0 }, 
-    cartelas: { type: Array, default: [] }
+    cartelas: { type: Array, default: [] },
+    totalGasto: { type: Number, default: 0 } // Para rastrear lucro real
 }));
 
-// MODELO PARA SAQUES
 const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
     userId: mongoose.Schema.Types.ObjectId,
     userName: String,
@@ -50,7 +50,8 @@ let jogo = {
     tempoSegundos: 300, 
     ganhador: null,
     valorGanho: 0,
-    cartelaVencedora: null 
+    cartelaVencedora: null,
+    totalVendasRodada: 0 // Para cálculo de lucro
 };
 
 setInterval(async () => {
@@ -88,7 +89,7 @@ async function realizarSorteio() {
 }
 
 function reiniciarGlobal() {
-    jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, cartelaVencedora: null };
+    jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, cartelaVencedora: null, totalVendasRodada: 0 };
 }
 
 // --- ROTAS DO JOGO ---
@@ -104,7 +105,7 @@ app.get('/user-data/:id', async (req, res) => {
     try { const u = await User.findById(req.params.id); res.json(u); } catch (e) { res.status(404).send(); }
 });
 
-// --- ROTAS DE SAQUE (USUÁRIO) ---
+// --- ROTA DE SAQUE ---
 app.post('/solicitar-saque', async (req, res) => {
     const { userId, valor, chavePix } = req.body;
     const v = parseFloat(valor);
@@ -115,15 +116,35 @@ app.post('/solicitar-saque', async (req, res) => {
             const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
             await pedido.save();
             res.json({ success: true });
-        } else res.status(400).json({ error: "Saldo insuficiente ou valor baixo" });
+        } else res.status(400).json({ error: "Saldo insuficiente" });
     } catch (e) { res.status(500).send(); }
 });
 
-// --- ROTAS DE ADMINISTRAÇÃO (PAINEL) ---
-app.post('/admin/saques', async (req, res) => {
+// --- 👤 ROTAS DE GERENTE (PROTEGIDAS) ---
+
+app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
-    const saques = await Withdrawal.find().sort({ data: -1 });
-    res.json(saques);
+    try {
+        const jogadores = await User.find({}, 'name email saldo _id');
+        const saques = await Withdrawal.find().sort({ data: -1 });
+        const totalSaldos = jogadores.reduce((acc, curr) => acc + curr.saldo, 0);
+        
+        res.json({
+            lucroRodada: jogo.totalVendasRodada - jogo.premioAcumulado,
+            jogadores,
+            saques,
+            bancoJogadores: totalSaldos
+        });
+    } catch (e) { res.status(500).send(); }
+});
+
+app.post('/admin/dar-bonus', async (req, res) => {
+    const { senha, userId, valor } = req.body;
+    if (senha !== SENHA_ADMIN) return res.status(401).send();
+    try {
+        const u = await User.findByIdAndUpdate(userId, { $inc: { saldo: parseFloat(valor) } }, { new: true });
+        res.json({ success: true, novoSaldo: u.saldo });
+    } catch (e) { res.status(400).send(); }
 });
 
 app.post('/admin/finalizar-saque', async (req, res) => {
@@ -132,7 +153,7 @@ app.post('/admin/finalizar-saque', async (req, res) => {
     res.json({ success: true });
 });
 
-// --- PAGAMENTO E COMPRA ---
+// --- COMPRA E PAGAMENTO ---
 app.post('/comprar-com-saldo', async (req, res) => {
     const { usuarioId, quantidade } = req.body;
     const user = await User.findById(usuarioId);
@@ -147,8 +168,11 @@ app.post('/comprar-com-saldo', async (req, res) => {
             }
             novas.push(n.sort((a,b)=>a-b));
         }
-        await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { cartelas: { $each: novas } } });
+        await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo, totalGasto: custo }, $push: { cartelas: { $each: novas } } });
+        
         jogo.premioAcumulado += (custo * 0.25);
+        jogo.totalVendasRodada += custo;
+        
         res.json({ success: true });
     } else res.status(400).send();
 });
