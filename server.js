@@ -27,8 +27,10 @@ const User = mongoose.model('User', new mongoose.Schema({
     senha: { type: String, required: true },
     saldo: { type: Number, default: 0 }, 
     cartelas: { type: Array, default: [] },
-    // ESSA É A CHAVE:
-    creditoParaSaque: { type: Number, default: 0 } 
+    totalApostado: { type: Number, default: 0 },
+    totalRecebido: { type: Number, default: 0 },
+    // CAMPO NOVO PARA CONTROLAR O QUE PODE SAIR:
+    creditoSaque: { type: Number, default: 0 } 
 }));
 
 const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
@@ -40,7 +42,15 @@ const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
     data: { type: Date, default: Date.now }
 }));
 
-let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
+let jogo = { 
+    bolas: [], 
+    fase: "acumulando", 
+    premioAcumulado: 0, 
+    tempoSegundos: 300, 
+    ganhador: null,
+    valorGanho: 0,
+    totalVendasRodada: 0 
+};
 
 setInterval(async () => {
     if (jogo.fase === "acumulando") {
@@ -68,9 +78,9 @@ async function realizarSorteio() {
                 jogo.valorGanho = jogo.premioAcumulado;
                 jogo.fase = "finalizado";
                 jogo.tempoSegundos = 0;
-                // GANHOU BINGO: O valor vai pro saldo E vira crédito de saque na hora
+                // REGRA: PRÊMIO DO BINGO É LIBERADO NA HORA (vai pro saldo e pro creditoSaque)
                 await User.findByIdAndUpdate(u._id, { 
-                    $inc: { saldo: jogo.premioAcumulado, creditoParaSaque: jogo.premioAcumulado } 
+                    $inc: { saldo: jogo.premioAcumulado, creditoSaque: jogo.premioAcumulado } 
                 });
                 await User.updateMany({}, { $set: { cartelas: [] } });
                 return;
@@ -82,6 +92,22 @@ async function realizarSorteio() {
 function reiniciarGlobal() {
     jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
 }
+
+app.get('/game-status', (req, res) => res.json(jogo));
+
+app.post('/login', async (req, res) => {
+    const { email, senha } = req.body;
+    const u = await User.findOne({ email, senha });
+    u ? res.json(u) : res.status(401).send();
+});
+
+app.post('/register', async (req, res) => {
+    try { 
+        const u = new User(req.body); 
+        await u.save(); 
+        res.json(u); 
+    } catch(e) { res.status(400).send(); }
+});
 
 app.post('/comprar-com-saldo', async (req, res) => {
     const { usuarioId, quantidade } = req.body;
@@ -97,16 +123,34 @@ app.post('/comprar-com-saldo', async (req, res) => {
             }
             novas.push(n.sort((a,b)=>a-b));
         }
-        // COMPROU CARTELA: O valor gasto (custo) vira crédito de saque disponível
+        // REGRA: CADA REAL QUE ELE JOGA, LIBERA UM REAL DE CRÉDITO DE SAQUE
         await User.findByIdAndUpdate(usuarioId, { 
-            $inc: { saldo: -custo, creditoParaSaque: custo }, 
+            $inc: { saldo: -custo, totalApostado: custo, creditoSaque: custo }, 
             $push: { cartelas: { $each: novas } } 
         });
         jogo.premioAcumulado += (custo * 0.25);
+        jogo.totalVendasRodada += custo;
         res.json({ success: true });
     } else res.status(400).send();
 });
 
+app.post('/webhook', async (req, res) => {
+    const { action, data } = req.body;
+    if (action === "payment.updated") {
+        try {
+            const p = await payment.get({ id: data.id });
+            if (p.status === "approved") {
+                // REGRA: DEPÓSITO SÓ AUMENTA O SALDO (créditoSaque fica igual)
+                await User.findByIdAndUpdate(p.external_reference, { 
+                    $inc: { saldo: p.transaction_amount, totalRecebido: p.transaction_amount } 
+                });
+            }
+        } catch (e) {}
+    }
+    res.sendStatus(200);
+});
+
+// --- SOLICITAR SAQUE USANDO O CRÉDITO DISPONÍVEL ---
 app.post('/solicitar-saque', async (req, res) => {
     const { userId, valor, chavePix } = req.body;
     const v = parseFloat(valor);
@@ -114,17 +158,18 @@ app.post('/solicitar-saque', async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).send();
 
-        // VALIDAÇÃO DO SEU PEDIDO:
-        if (v > user.creditoParaSaque) {
+        // CONDIÇÃO: Ele só pode sacar o que tem de créditoSaque
+        if (v > user.creditoSaque) {
+            const disponivel = user.creditoSaque > 0 ? user.creditoSaque : 0;
             return res.status(400).json({ 
-                error: `Você só pode sacar o valor que já jogou ou ganhou. Disponível: R$ ${user.creditoParaSaque.toFixed(2)}` 
+                error: `Você só pode sacar o que já jogou ou ganhou. Liberado: R$ ${disponivel.toFixed(2)}` 
             });
         }
 
         if (user.saldo >= v && v >= 20) {
-            // Remove do saldo e remove do crédito disponível
+            // Deduz do saldo E do crédito liberado
             await User.findByIdAndUpdate(userId, { 
-                $inc: { saldo: -v, creditoParaSaque: -v } 
+                $inc: { saldo: -v, creditoSaque: -v } 
             });
             const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
             await pedido.save();
@@ -135,26 +180,12 @@ app.post('/solicitar-saque', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// Rotas de suporte (Login, Pix, Admin)
-app.get('/game-status', (req, res) => res.json(jogo));
-app.post('/login', async (req, res) => {
-    const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
-    u ? res.json(u) : res.status(401).send();
-});
-app.post('/register', async (req, res) => {
-    try { const u = new User(req.body); await u.save(); res.json(u); } catch(e) { res.status(400).send(); }
-});
-app.post('/webhook', async (req, res) => {
-    const { action, data } = req.body;
-    if (action === "payment.updated") {
-        try {
-            const p = await payment.get({ id: data.id });
-            if (p.status === "approved") {
-                await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
-            }
-        } catch (e) {}
-    }
-    res.sendStatus(200);
+// Rotas Admin
+app.post('/admin/dashboard', async (req, res) => {
+    if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
+    const jogadores = await User.find({}, 'name email saldo creditoSaque _id');
+    const saques = await Withdrawal.find().sort({ data: -1 });
+    res.json({ jogadores, saques });
 });
 
 app.listen(process.env.PORT || 10000);
