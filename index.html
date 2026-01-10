@@ -44,7 +44,7 @@
             width: 140px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             flex-grow: 0;
-            height: fit-content; /* Remove o excesso abaixo */
+            height: fit-content;
             display: flex;
             flex-direction: column;
         }
@@ -112,6 +112,7 @@
 
     <div id="menuLateral" class="hidden" style="position: absolute; top: 50px; left: 10px; background: #1e293b; border: 1px solid var(--primary); border-radius: 8px; width: 160px; z-index: 2000; text-align: left;">
         <div class="menu-item" id="perfilNome" style="padding:12px; border-bottom: 1px solid #334155; font-weight:bold;">...</div>
+        <div class="menu-item" onclick="abrirModalSaque()" style="padding:12px; color:var(--primary); font-weight:bold; cursor:pointer; border-bottom: 1px solid #334155;">💰 Sacar Saldo</div>
         <div class="menu-item" onclick="logout()" style="padding:12px; color:#ef4444; font-weight:bold; cursor:pointer;">🚪 Sair</div>
     </div>
 
@@ -157,6 +158,17 @@
     </div>
 </div>
 
+<div id="modalSaque" class="modal hidden">
+    <div class="modal-content">
+        <h4>SOLICITAR SAQUE</h4>
+        <p style="font-size: 11px; color: #64748b; margin-bottom: 10px;">Mínimo: R$ 20,00</p>
+        <input type="number" id="valorSaque" placeholder="Valor R$" style="width:100%; padding:10px; margin-bottom:10px; box-sizing: border-box;">
+        <input type="text" id="chavePixSaque" placeholder="Sua Chave PIX" style="width:100%; padding:10px; margin-bottom:10px; box-sizing: border-box;">
+        <button onclick="enviarPedidoSaque()" style="background: #ef4444; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold;">SOLICITAR PIX</button>
+        <button onclick="document.getElementById('modalSaque').classList.add('hidden')" style="margin-top:10px; border:none; color:red; background:none; cursor:pointer;">Cancelar</button>
+    </div>
+</div>
+
 <div id="modalPix" class="modal hidden">
     <div class="modal-content">
         <h4>PAGAMENTO PIX</h4>
@@ -179,6 +191,37 @@
     function mostrarLogin() { document.getElementById('telaCadastro').classList.add('hidden'); document.getElementById('telaLogin').classList.remove('hidden'); }
     function logout() { localStorage.clear(); location.reload(); }
     function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
+    
+    // FUNÇÕES DE SAQUE
+    function abrirModalSaque() {
+        toggleMenu();
+        document.getElementById('modalSaque').classList.remove('hidden');
+    }
+
+    async function enviarPedidoSaque() {
+        const valor = document.getElementById('valorSaque').value;
+        const chave = document.getElementById('chavePixSaque').value;
+
+        if (!valor || !chave) return alert("Preencha todos os campos!");
+        if (parseFloat(valor) < 20) return alert("O valor mínimo para saque é R$ 20,00");
+
+        try {
+            const res = await fetch(`${API}/solicitar-saque`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId: USER_ID, valor: valor, chavePix: chave })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert("Pedido enviado! Seu saldo foi atualizado e o pagamento será processado em breve.");
+                document.getElementById('modalSaque').classList.add('hidden');
+                atualizarInterface();
+            } else {
+                alert(data.error || "Erro ao solicitar saque.");
+            }
+        } catch(e) { alert("Erro de conexão!"); }
+    }
+
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2000); }
     function copiarID() { if(USER_ID) { navigator.clipboard.writeText(USER_ID); showToast("ID Copiado!"); } }
 
