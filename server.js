@@ -27,7 +27,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     senha: { type: String, required: true },
     saldo: { type: Number, default: 0 }, 
     cartelas: { type: Array, default: [] },
-    // REGRA: Apenas valores ganhos entram aqui
+    // REGRA: APENAS O PRÊMIO DO BINGO (GANHO) LIBERA ESTE CAMPO
     valorLiberadoSaque: { type: Number, default: 0 } 
 }));
 
@@ -70,7 +70,7 @@ async function realizarSorteio() {
                 jogo.fase = "finalizado";
                 jogo.tempoSegundos = 0;
                 
-                // --- REGRA CENTRAL: SÓ O QUE GANHOU LIBERA SAQUE ---
+                // --- ÚNICO LUGAR QUE LIBERA SAQUE: GANHAR O BINGO ---
                 await User.findByIdAndUpdate(u._id, { 
                     $inc: { saldo: jogo.premioAcumulado, valorLiberadoSaque: jogo.premioAcumulado } 
                 });
@@ -86,7 +86,17 @@ function reiniciarGlobal() {
     jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0 };
 }
 
-// COMPRA DE CARTELA: Tira do saldo, mas NÃO libera saque.
+// BÔNUS ADMIN: AGORA TRAVADO (SÓ AUMENTA O SALDO PARA JOGAR)
+app.post('/admin/dar-bonus', async (req, res) => {
+    const { senha, userId, valor } = req.body;
+    if (senha !== SENHA_ADMIN) return res.status(401).send();
+    // Repare: removi o valorLiberadoSaque daqui. O bônus agora é só saldo interno.
+    await User.findByIdAndUpdate(userId, { 
+        $inc: { saldo: parseFloat(valor) } 
+    });
+    res.json({ success: true });
+});
+
 app.post('/comprar-com-saldo', async (req, res) => {
     const { usuarioId, quantidade } = req.body;
     const custo = parseInt(quantidade) * 2;
@@ -102,7 +112,7 @@ app.post('/comprar-com-saldo', async (req, res) => {
             novas.push(n.sort((a,b)=>a-b));
         }
         await User.findByIdAndUpdate(usuarioId, { 
-            $inc: { saldo: -custo }, // Só diminui o saldo, não mexe no liberado
+            $inc: { saldo: -custo }, 
             $push: { cartelas: { $each: novas } } 
         });
         jogo.premioAcumulado += (custo * 0.25);
@@ -110,14 +120,12 @@ app.post('/comprar-com-saldo', async (req, res) => {
     } else res.status(400).send();
 });
 
-// PIX: Só entra no saldo.
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
-    const v = parseFloat(valor);
     try {
         const response = await payment.create({
             body: {
-                transaction_amount: v,
+                transaction_amount: parseFloat(valor),
                 description: "Bingo Real - Depósito",
                 payment_method_id: "pix",
                 payer: { email: "cliente@bingoreal.com" },
@@ -131,20 +139,6 @@ app.post('/gerar-pix', async (req, res) => {
     } catch (e) { res.status(500).json(e); }
 });
 
-app.post('/webhook', async (req, res) => {
-    const { action, data } = req.body;
-    if (action === "payment.updated") {
-        try {
-            const p = await payment.get({ id: data.id });
-            if (p.status === "approved") {
-                await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
-            }
-        } catch (e) {}
-    }
-    res.sendStatus(200);
-});
-
-// SAQUE: Valida se o valor solicitado é menor ou igual ao que ele GANHOU.
 app.post('/solicitar-saque', async (req, res) => {
     const { userId, valor, chavePix } = req.body;
     const v = parseFloat(valor);
@@ -152,9 +146,10 @@ app.post('/solicitar-saque', async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).send();
 
+        // VALIDAÇÃO RIGOROSA: SÓ O QUE GANHOU NO BINGO
         if (v > user.valorLiberadoSaque) {
             return res.status(400).json({ 
-                error: `Você só pode sacar o que ganhou no Bingo. Disponível para saque: R$ ${user.valorLiberadoSaque.toFixed(2)}` 
+                error: `Saque bloqueado. Apenas valores ganhos no Bingo podem ser sacados. Disponível: R$ ${user.valorLiberadoSaque.toFixed(2)}` 
             });
         }
 
@@ -171,14 +166,17 @@ app.post('/solicitar-saque', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// ADMIN: Bônus também libera saque (para caso você queira premiar alguém manualmente)
-app.post('/admin/dar-bonus', async (req, res) => {
-    const { senha, userId, valor } = req.body;
-    if (senha !== SENHA_ADMIN) return res.status(401).send();
-    await User.findByIdAndUpdate(userId, { 
-        $inc: { saldo: parseFloat(valor), valorLiberadoSaque: parseFloat(valor) } 
-    });
-    res.json({ success: true });
+app.post('/webhook', async (req, res) => {
+    const { action, data } = req.body;
+    if (action === "payment.updated") {
+        try {
+            const p = await payment.get({ id: data.id });
+            if (p.status === "approved") {
+                await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
+            }
+        } catch (e) {}
+    }
+    res.sendStatus(200);
 });
 
 app.post('/admin/dashboard', async (req, res) => {
@@ -209,4 +207,3 @@ app.get('/user-data/:id', async (req, res) => {
 });
 
 app.listen(process.env.PORT || 10000);
-                               
