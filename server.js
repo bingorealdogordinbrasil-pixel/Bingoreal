@@ -27,7 +27,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     senha: { type: String, required: true },
     saldo: { type: Number, default: 0 }, 
     cartelas: { type: Array, default: [] },
-    cartelasProximaRodada: { type: Array, default: [] }, // ADICIONADO SEM MEXER NO RESTO
+    cartelasProximaRodada: { type: Array, default: [] }, 
     valorLiberadoSaque: { type: Number, default: 0 } 
 }));
 
@@ -51,7 +51,6 @@ let jogo = {
     totalVendasRodada: 0 
 };
 
-// LOOP PRINCIPAL (MANTIDO EXATAMENTE COMO O SEU)
 setInterval(async () => {
     if (jogo.fase === "acumulando") {
         if (jogo.tempoSegundos > 0) jogo.tempoSegundos--;
@@ -60,7 +59,7 @@ setInterval(async () => {
         if (Math.abs(jogo.tempoSegundos) % 3 === 0) await realizarSorteio();
         jogo.tempoSegundos--;
     } else if (jogo.fase === "finalizado") {
-        if (Math.abs(jogo.tempoSegundos) >= 15) await reiniciarGlobal(); // Agora chama async
+        if (Math.abs(jogo.tempoSegundos) >= 15) await reiniciarGlobal();
         jogo.tempoSegundos++;
     }
 }, 1000);
@@ -99,40 +98,26 @@ async function realizarSorteio() {
     }
 }
 
-// REINICIAR GLOBAL CORRIGIDO - MOVE AS CARTELAS DA ESPERA PARA O JOGO
 async function reiniciarGlobal() {
     try {
         const usersComEspera = await User.find({ "cartelasProximaRodada.0": { $exists: true } });
         let vendasIniciais = 0;
-
         for (let u of usersComEspera) {
             vendasIniciais += (u.cartelasProximaRodada.length * 2);
             await User.findByIdAndUpdate(u._id, {
                 $set: { cartelas: u.cartelasProximaRodada, cartelasProximaRodada: [] }
             });
         }
-
-        jogo = { 
-            bolas: [], 
-            fase: "acumulando", 
-            premioAcumulado: (vendasIniciais * 0.25), 
-            tempoSegundos: 300, 
-            ganhador: null, 
-            valorGanho: 0, 
-            totalVendasRodada: vendasIniciais 
-        };
+        jogo = { bolas: [], fase: "acumulando", premioAcumulado: (vendasIniciais * 0.25), tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: vendasIniciais };
     } catch (e) {
-        // Se der erro, reinicia o jogo zerado para não travar o loop
         jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
     }
 }
 
-// COMPRA DE CARTELA COM LOGICA DE ESPERA
 app.post('/comprar-com-saldo', async (req, res) => {
     const { usuarioId, quantidade } = req.body;
     const custo = parseInt(quantidade) * 2;
     const user = await User.findById(usuarioId);
-    
     if (user && user.saldo >= custo) {
         let novas = [];
         for (let i = 0; i < quantidade; i++) {
@@ -143,24 +128,35 @@ app.post('/comprar-com-saldo', async (req, res) => {
             }
             novas.push(n.sort((a,b)=>a-b));
         }
-
         const campoAlvo = (jogo.fase === "acumulando") ? "cartelas" : "cartelasProximaRodada";
-
-        await User.findByIdAndUpdate(usuarioId, { 
-            $inc: { saldo: -custo },
-            $push: { [campoAlvo]: { $each: novas } } 
-        });
-
+        await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { [campoAlvo]: { $each: novas } } });
         if (jogo.fase === "acumulando") {
             jogo.premioAcumulado += (custo * 0.25);
             jogo.totalVendasRodada += custo; 
         }
-
         res.json({ success: true });
     } else res.status(400).send();
 });
 
-// --- RESTO DAS ROTAS MANTIDAS INTEGRALMENTE ---
+app.post('/solicitar-saque', async (req, res) => {
+    const { userId, valor, chavePix } = req.body;
+    const v = parseFloat(valor);
+    try {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).send();
+        if (v > user.valorLiberadoSaque) {
+            return res.status(400).json({ error: `Valor não liberado. Você possui apenas R$ ${user.valorLiberadoSaque.toFixed(2)} disponíveis para saque.` });
+        }
+        if (v < 20) return res.status(400).json({ error: "O valor mínimo para saque é R$ 20,00" });
+        if (user.saldo >= v) {
+            await User.findByIdAndUpdate(userId, { $inc: { saldo: -v, valorLiberadoSaque: -v } });
+            const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
+            await pedido.save();
+            res.json({ success: true });
+        } else { res.status(400).json({ error: "Saldo insuficiente." }); }
+    } catch (e) { res.status(500).send(); }
+});
+
 app.get('/top-ganhadores', async (req, res) => {
     try {
         const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } }).sort({ valorLiberadoSaque: -1 }).limit(10).select('name valorLiberadoSaque');
@@ -176,32 +172,12 @@ app.post('/admin/dashboard', async (req, res) => {
     res.json({ jogadores, saques, lucroRodada: lucroDestaRodada, lucroTotalHistorico: lucroGeralAcumulado + lucroDestaRodada, vendasRodada: jogo.totalVendasRodada });
 });
 
-app.post('/solicitar-saque', async (req, res) => {
-    const { userId, valor, chavePix } = req.body;
-    const v = parseFloat(valor);
-    try {
-        const user = await User.findById(userId);
-        if (!user || v > user.valorLiberadoSaque || user.saldo < v || v < 20) return res.status(400).json({ error: "Erro no saque ou valor não liberado." });
-        await User.findByIdAndUpdate(userId, { $inc: { saldo: -v, valorLiberadoSaque: -v } });
-        const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
-        await pedido.save();
-        res.json({ success: true });
-    } catch (e) { res.status(500).send(); }
-});
-
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
     try {
         const response = await payment.create({ body: { transaction_amount: parseFloat(valor), description: "Bingo Real", payment_method_id: "pix", payer: { email: "cliente@bingoreal.com" }, external_reference: userId.toString() } });
         res.json({ qr_code: response.point_of_interaction.transaction_data.qr_code, qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64 });
     } catch (e) { res.status(500).json(e); }
-});
-
-app.post('/admin/dar-bonus', async (req, res) => {
-    const { senha, userId, valor } = req.body;
-    if (senha !== SENHA_ADMIN) return res.status(401).send();
-    await User.findByIdAndUpdate(userId, { $inc: { saldo: parseFloat(valor) } });
-    res.json({ success: true });
 });
 
 app.post('/webhook', async (req, res) => {
