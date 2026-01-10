@@ -2,25 +2,26 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-const bcrypt = require('bcrypt'); // Segurança de Senha
-const rateLimit = require('express-rate-limit'); // Anti-Robô
-const helmet = require('helmet'); // Proteção de Cabeçalho
+const bcrypt = require('bcrypt'); // Criptografia de senhas
+const helmet = require('helmet'); // Proteção de cabeçalhos HTTP
+const rateLimit = require('express-rate-limit'); // Prevenção contra robôs/ataques
 const { MercadoPagoConfig, Payment } = require('mercadopago');
 
 const app = express();
 
-// --- 🛡️ CAMADA 1: SEGURANÇA DE REDE ---
-app.use(helmet()); // Protege contra vulnerabilidades web conhecidas
+// --- 🛡️ CAMADA DE SEGURANÇA 1: BLINDAGEM DO SERVIDOR ---
+app.use(helmet({
+  contentSecurityPolicy: false, // Permite carregar recursos externos se necessário
+}));
 app.use(cors());
 app.use(express.json());
 
-// Limita cada IP a 100 requisições por 15 minutos
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: "Muitas requisições vindas deste IP. Tente novamente mais tarde."
+// Limita o número de requisições por IP para evitar ataques de negação de serviço (DoS)
+const geralLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100 // Limite de 100 requisições por IP
 });
-app.use('/login', limiter); // Protege especificamente o login contra força bruta
+app.use(geralLimiter);
 
 app.use(express.static(path.join(__dirname, '/')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
@@ -39,10 +40,10 @@ const mongoURI = "mongodb+srv://admin:bingoreal123@cluster0.ap7q4ev.mongodb.net/
 mongoose.connect(mongoURI);
 
 const User = mongoose.model('User', new mongoose.Schema({
-    name: { type: String, required: true },
-    email: { type: String, unique: true, required: true },
-    senha: { type: String, required: true }, // Será guardada como HASH
-    saldo: { type: Number, default: 0 },
+    name: { type: String, required: true }, 
+    email: { type: String, unique: true, required: true }, 
+    senha: { type: String, required: true },
+    saldo: { type: Number, default: 0 }, 
     cartelas: { type: Array, default: [] },
     totalApostado: { type: Number, default: 0 },
     totalRecebido: { type: Number, default: 0 }
@@ -58,7 +59,15 @@ const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
 }));
 
 // --- MOTOR DO JOGO ---
-let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
+let jogo = { 
+    bolas: [], 
+    fase: "acumulando", 
+    premioAcumulado: 0, 
+    tempoSegundos: 300, 
+    ganhador: null,
+    valorGanho: 0,
+    totalVendasRodada: 0 
+};
 
 setInterval(async () => {
     if (jogo.fase === "acumulando") {
@@ -103,35 +112,37 @@ function reiniciarGlobal() {
 app.post('/register', async (req, res) => {
     try {
         const { name, email, senha } = req.body;
-        // Criptografa a senha antes de salvar
+        // Criptografia da senha (Salt)
         const salt = await bcrypt.genSalt(10);
-        const senhaHash = await bcrypt.hash(senha, salt);
+        const hashedSenha = await bcrypt.hash(senha, salt);
         
-        const u = new User({ name, email, senha: senhaHash });
+        const u = new User({ name, email, senha: hashedSenha });
         await u.save();
         res.json({ success: true });
-    } catch(e) { res.status(400).send("Erro ao registrar."); }
+    } catch(e) { 
+        res.status(400).json({ error: "E-mail já cadastrado ou dados inválidos." }); 
+    }
 });
 
 app.post('/login', async (req, res) => {
     try {
         const u = await User.findOne({ email: req.body.email });
         if (u && await bcrypt.compare(req.body.senha, u.senha)) {
-            res.json(u);
+            // Não envia a senha de volta para o cliente por segurança
+            const { senha, ...userSemSenha } = u.toObject();
+            res.json(userSemSenha);
         } else {
-            res.status(401).send("Credenciais inválidas.");
+            res.status(401).json({ error: "Credenciais inválidas." });
         }
     } catch (e) { res.status(500).send(); }
 });
 
 app.post('/comprar-com-saldo', async (req, res) => {
     const { usuarioId, quantidade } = req.body;
-    // Bloqueia quantidades negativas ou absurdas
-    if (quantidade <= 0 || quantidade > 100) return res.status(400).send();
+    if (quantidade <= 0 || quantidade > 50) return res.status(400).json({ error: "Quantidade inválida." });
 
     const user = await User.findById(usuarioId);
     const custo = parseInt(quantidade) * 2;
-
     if (user && user.saldo >= custo && jogo.fase === "acumulando") {
         let novas = [];
         for (let i = 0; i < quantidade; i++) {
@@ -149,60 +160,53 @@ app.post('/comprar-com-saldo', async (req, res) => {
         jogo.premioAcumulado += (custo * 0.25);
         jogo.totalVendasRodada += custo;
         res.json({ success: true });
-    } else res.status(400).send();
+    } else res.status(400).json({ error: "Saldo insuficiente ou fase inválida." });
 });
 
-// --- SAQUE COM TRAVA DE ROLLOVER ---
 app.post('/solicitar-saque', async (req, res) => {
     const { userId, valor, chavePix } = req.body;
     const v = parseFloat(valor);
     try {
         const user = await User.findById(userId);
-        if (!user) return res.status(404).send();
-
-        // SEGURANÇA: Verificação de ROLLOVER (Anti-fraude)
-        if (user.totalApostado < user.totalRecebido) {
-            return res.status(400).json({ error: "Você precisa apostar o valor total depositado antes de sacar." });
+        
+        // 🛡️ TRAVA DE ROLLOVER: Só saca se jogou o que depositou/ganhou
+        if (user && user.totalApostado < user.totalRecebido) {
+            const falta = user.totalRecebido - user.totalApostado;
+            return res.status(400).json({ 
+                error: `Segurança: Você ainda precisa apostar R$ ${falta.toFixed(2)} para liberar o saque.` 
+            });
         }
 
-        if (user.saldo >= v && v >= 20) {
+        if (user && user.saldo >= v && v >= 20) {
             await User.findByIdAndUpdate(userId, { $inc: { saldo: -v } });
             const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
             await pedido.save();
             res.json({ success: true });
-        } else res.status(400).json({ error: "Saldo insuficiente." });
+        } else res.status(400).json({ error: "Saldo insuficiente ou valor mínimo não atingido." });
     } catch (e) { res.status(500).send(); }
 });
 
-// --- ADMIN ---
+// --- GERENTE (ADMIN) ---
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
     const jogadores = await User.find({}, 'name email saldo totalApostado totalRecebido _id');
     const saques = await Withdrawal.find().sort({ data: -1 });
-    res.json({ jogadores, saques, lucroRodada: jogo.totalVendasRodada - jogo.premioAcumulado });
+    const bancoJogadores = jogadores.reduce((acc, curr) => acc + curr.saldo, 0);
+    res.json({ 
+        jogadores, 
+        saques, 
+        lucroRodada: jogo.totalVendasRodada - jogo.premioAcumulado,
+        bancoJogadores
+    });
 });
 
 app.post('/admin/dar-bonus', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
-    const v = parseFloat(req.body.valor);
-    await User.findByIdAndUpdate(req.body.userId, { $inc: { saldo: v, totalRecebido: v } });
-    res.json({ success: true });
-});
-
-// --- WEBHOOK (SÓ ACEITA REQUISIÇÕES REAIS DO MP) ---
-app.post('/webhook', async (req, res) => {
-    const { action, data } = req.body;
-    if (action === "payment.updated") {
-        try {
-            const p = await payment.get({ id: data.id });
-            if (p.status === "approved") {
-                await User.findByIdAndUpdate(p.external_reference, { 
-                    $inc: { saldo: p.transaction_amount, totalRecebido: p.transaction_amount } 
-                });
-            }
-        } catch (e) {}
-    }
-    res.sendStatus(200);
+    try {
+        const v = parseFloat(req.body.valor);
+        await User.findByIdAndUpdate(req.body.userId, { $inc: { saldo: v, totalRecebido: v } });
+        res.json({ success: true });
+    } catch (e) { res.status(400).send(); }
 });
 
 app.listen(process.env.PORT || 10000);
