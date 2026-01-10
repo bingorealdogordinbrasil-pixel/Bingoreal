@@ -1,4 +1,4 @@
-const express = require('express');
+Const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
@@ -119,41 +119,17 @@ app.post('/solicitar-saque', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// --- ROTAS DE ADMINISTRAÇÃO & GERENTE ---
-
-// 1. Ver pedidos de saque
+// --- ROTAS DE ADMINISTRAÇÃO (PAINEL) ---
 app.post('/admin/saques', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
     const saques = await Withdrawal.find().sort({ data: -1 });
     res.json(saques);
 });
 
-// 2. Finalizar saque (Marcar como pago)
 app.post('/admin/finalizar-saque', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
     await Withdrawal.findByIdAndDelete(req.body.saqueId);
     res.json({ success: true });
-});
-
-// 3. ADICIONAR SALDO MANUAL (GERENTE)
-app.post('/admin/adicionar-saldo', async (req, res) => {
-    const { senha, userId, valor } = req.body;
-    if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha incorreta" });
-
-    try {
-        const user = await User.findByIdAndUpdate(
-            userId, 
-            { $inc: { saldo: parseFloat(valor) } }, 
-            { new: true }
-        );
-        if (user) {
-            res.json({ success: true, novoSaldo: user.saldo });
-        } else {
-            res.status(404).json({ error: "Usuário não encontrado" });
-        }
-    } catch (e) {
-        res.status(500).json({ error: "Erro ao processar ID" });
-    }
 });
 
 // --- PAGAMENTO E COMPRA ---
