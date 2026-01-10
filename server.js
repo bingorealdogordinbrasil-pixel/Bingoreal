@@ -51,6 +51,7 @@ let jogo = {
     totalVendasRodada: 0 
 };
 
+// LOOP PRINCIPAL
 setInterval(async () => {
     if (jogo.fase === "acumulando") {
         if (jogo.tempoSegundos > 0) jogo.tempoSegundos--;
@@ -114,6 +115,27 @@ async function reiniciarGlobal() {
     }
 }
 
+// DASHBOARD DO GERENTE (CORRIGIDA)
+app.post('/admin/dashboard', async (req, res) => {
+    if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
+    try {
+        const jogadores = await User.find({}, 'name email saldo valorLiberadoSaque _id');
+        // Busca saques pendentes e aprovados
+        const saques = await Withdrawal.find().sort({ data: -1 });
+        const lucroDestaRodada = jogo.totalVendasRodada - jogo.premioAcumulado;
+        
+        res.json({ 
+            jogadores, 
+            saques, // Aqui vai a lista de saques para o gerente ver
+            lucroRodada: lucroDestaRodada, 
+            lucroTotalHistorico: lucroGeralAcumulado + lucroDestaRodada,
+            vendasRodada: jogo.totalVendasRodada
+        });
+    } catch (e) {
+        res.status(500).send();
+    }
+});
+
 app.post('/comprar-com-saldo', async (req, res) => {
     const { usuarioId, quantidade } = req.body;
     const custo = parseInt(quantidade) * 2;
@@ -157,7 +179,6 @@ app.post('/solicitar-saque', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// --- ROTA DE BÔNUS (CORRIGIDA) ---
 app.post('/admin/dar-bonus', async (req, res) => {
     const { senha, userId, valor } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).send();
@@ -172,14 +193,6 @@ app.get('/top-ganhadores', async (req, res) => {
         const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } }).sort({ valorLiberadoSaque: -1 }).limit(10).select('name valorLiberadoSaque');
         res.json(tops);
     } catch (e) { res.status(500).send(); }
-});
-
-app.post('/admin/dashboard', async (req, res) => {
-    if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
-    const jogadores = await User.find({}, 'name email saldo valorLiberadoSaque _id');
-    const saques = await Withdrawal.find().sort({ data: -1 });
-    const lucroDestaRodada = jogo.totalVendasRodada - jogo.premioAcumulado;
-    res.json({ jogadores, saques, lucroRodada: lucroDestaRodada, lucroTotalHistorico: lucroGeralAcumulado + lucroDestaRodada, vendasRodada: jogo.totalVendasRodada });
 });
 
 app.post('/gerar-pix', async (req, res) => {
