@@ -21,6 +21,7 @@ const payment = new Payment(client);
 const mongoURI = "mongodb+srv://admin:bingoreal123@cluster0.ap7q4ev.mongodb.net/?retryWrites=true&w=majority";
 mongoose.connect(mongoURI);
 
+// MODELO DE USUÁRIO
 const User = mongoose.model('User', new mongoose.Schema({
     name: { type: String, required: true }, 
     email: { type: String, unique: true, required: true }, 
@@ -31,6 +32,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     valorLiberadoSaque: { type: Number, default: 0 } 
 }));
 
+// MODELO DE SAQUES
 const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
     userId: mongoose.Schema.Types.ObjectId,
     userName: String,
@@ -51,6 +53,7 @@ let jogo = {
     totalVendasRodada: 0 
 };
 
+// LOOP DO JOGO
 setInterval(async () => {
     if (jogo.fase === "acumulando") {
         if (jogo.tempoSegundos > 0) jogo.tempoSegundos--;
@@ -114,28 +117,36 @@ async function reiniciarGlobal() {
     }
 }
 
-// DASHBOARD GERENTE
+// --- ROTAS DO GERENTE ---
+
+// 1. DASHBOARD (BUSCA DADOS E SAQUES)
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
     try {
         const jogadores = await User.find({}, 'name email saldo valorLiberadoSaque _id');
         const saques = await Withdrawal.find().sort({ data: -1 });
         const lucroDestaRodada = jogo.totalVendasRodada - jogo.premioAcumulado;
-        res.json({ jogadores, saques, lucroRodada: lucroDestaRodada, lucroTotalHistorico: lucroGeralAcumulado + lucroDestaRodada, vendasRodada: jogo.totalVendasRodada });
+        res.json({ 
+            jogadores, 
+            saques, 
+            lucroRodada: lucroDestaRodada, 
+            lucroTotalHistorico: lucroGeralAcumulado + lucroDestaRodada, 
+            vendasRodada: jogo.totalVendasRodada 
+        });
     } catch (e) { res.status(500).send(); }
 });
 
-// NOVA ROTA: EXCLUIR SAQUE (PARA O NOME SUMIR DA LISTA)
+// 2. EXCLUIR SAQUE (MARCAR COMO PAGO E SUMIR DA LISTA)
 app.post('/admin/excluir-saque', async (req, res) => {
     const { senha, saqueId } = req.body;
-    if (senha !== SENHA_ADMIN) return res.status(401).send();
+    if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha Inválida" });
     try {
         await Withdrawal.findByIdAndDelete(saqueId);
         res.json({ success: true });
-    } catch (e) { res.status(500).send(); }
+    } catch (e) { res.status(500).json({ error: "Erro ao deletar" }); }
 });
 
-// ROTA DE BÔNUS GERENTE
+// 3. DAR BÔNUS
 app.post('/admin/dar-bonus', async (req, res) => {
     const { senha, userId, valor } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).send();
@@ -145,7 +156,8 @@ app.post('/admin/dar-bonus', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// COMPRA DE CARTELA
+// --- ROTAS DO JOGADOR ---
+
 app.post('/comprar-com-saldo', async (req, res) => {
     const { usuarioId, quantidade } = req.body;
     const custo = parseInt(quantidade) * 2;
@@ -170,7 +182,6 @@ app.post('/comprar-com-saldo', async (req, res) => {
     } else res.status(400).send();
 });
 
-// SOLICITAR SAQUE (TRAVADO AO PRÊMIO)
 app.post('/solicitar-saque', async (req, res) => {
     const { userId, valor, chavePix } = req.body;
     const v = parseFloat(valor);
@@ -178,22 +189,15 @@ app.post('/solicitar-saque', async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).send();
         if (v > user.valorLiberadoSaque) {
-            return res.status(400).json({ error: `Valor não liberado. Você possui apenas R$ ${user.valorLiberadoSaque.toFixed(2)} disponíveis para saque.` });
+            return res.status(400).json({ error: `Você possui apenas R$ ${user.valorLiberadoSaque.toFixed(2)} liberados para saque.` });
         }
-        if (v < 20) return res.status(400).json({ error: "O valor mínimo para saque é R$ 20,00" });
+        if (v < 20) return res.status(400).json({ error: "Mínimo R$ 20,00" });
         if (user.saldo >= v) {
             await User.findByIdAndUpdate(userId, { $inc: { saldo: -v, valorLiberadoSaque: -v } });
             const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
             await pedido.save();
             res.json({ success: true });
         } else { res.status(400).json({ error: "Saldo insuficiente." }); }
-    } catch (e) { res.status(500).send(); }
-});
-
-app.get('/top-ganhadores', async (req, res) => {
-    try {
-        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } }).sort({ valorLiberadoSaque: -1 }).limit(10).select('name valorLiberadoSaque');
-        res.json(tops);
     } catch (e) { res.status(500).send(); }
 });
 
@@ -231,4 +235,3 @@ app.get('/user-data/:id', async (req, res) => {
 });
 
 app.listen(process.env.PORT || 10000);
-            
