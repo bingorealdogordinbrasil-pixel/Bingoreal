@@ -4,74 +4,102 @@
     <meta charset="UTF-8">
     <title>Gerência Bingo Real</title>
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; }
-        .card { background: #1e293b; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #334155; }
-        input, button { padding: 10px; border-radius: 5px; border: none; margin: 5px; }
-        button { cursor: pointer; font-weight: bold; background: #22c55e; color: white; transition: 0.3s; }
-        button:hover { opacity: 0.8; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 10px; border: 1px solid #334155; text-align: left; }
-        th { background: #0f172a; color: #facc15; }
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --primary: #3b82f6;
+            --success: #22c55e;
+            --accent: #facc15;
+            --danger: #ef4444;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
+        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        
+        input { background: #0f172a; color: white; border: 1px solid #334155; padding: 12px; border-radius: 8px; margin: 5px; outline: none; }
+        input:focus { border-color: var(--primary); }
+        
+        button { cursor: pointer; font-weight: bold; padding: 12px 20px; border-radius: 8px; border: none; transition: 0.2s; }
+        .btn-green { background: var(--success); color: white; }
+        .btn-blue { background: var(--primary); color: white; }
+        .btn-refresh { background: var(--accent); color: #000; }
+        button:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #1a2233; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 14px; text-align: left; border-bottom: 1px solid #334155; }
+        th { background: #0a0f1d; color: var(--accent); font-size: 0.9em; text-transform: uppercase; }
+        
         .hidden { display: none; }
-        .btn-refresh { background: #facc15; color: #000; margin-bottom: 15px; }
-        .copy-id { cursor: pointer; color: #3b82f6; font-family: monospace; text-decoration: underline; }
+        .copy-id { cursor: pointer; color: var(--primary); font-family: monospace; font-weight: bold; }
+        .saque-row:hover { background: #243147; }
+        
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; background: rgba(34, 197, 94, 0.2); color: var(--success); }
     </style>
 </head>
 <body>
-    <div id="login">
-        <h2>Acesso Gerente</h2>
-        <input type="password" id="senha" placeholder="Senha Admin">
-        <button onclick="carregarDash()">Entrar no Painel</button>
+
+    <div id="login" style="max-width: 400px; margin: 100px auto; text-align: center;">
+        <h2 style="color: var(--accent);">👑 Bingo Gerente</h2>
+        <div class="card">
+            <input type="password" id="senha" placeholder="Senha do Administrador" style="width: 80%;">
+            <br><br>
+            <button onclick="carregarDash()" class="btn-green" style="width: 90%;">Entrar no Painel</button>
+        </div>
     </div>
 
     <div id="dash" class="hidden">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h1>🛠️ Painel de Controle</h1>
             <button class="btn-refresh" onclick="carregarDash()">🔄 ATUALIZAR DADOS</button>
         </div>
 
-        <div class="card">
-            <h2>💰 Lucro da Rodada Atual: <span id="lucroRodada" style="color: #22c55e;">R$ 0,00</span></h2>
-            <p>Saldo Total de todos os Jogadores no Banco: R$ <span id="banco">0,00</span></p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="card">
+                <h3 style="margin-top:0">💰 Lucro desta Rodada</h3>
+                <h2 id="lucroRodada" style="color: var(--success); font-size: 2.5em; margin: 10px 0;">R$ 0,00</h2>
+                <p style="color: #94a3b8;">Saldo Total em Banco: R$ <span id="banco" style="color:white">0,00</span></p>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top:0">🎁 Adicionar Bônus</h3>
+                <input type="text" id="targetId" placeholder="ID do Jogador" style="width: 40%;">
+                <input type="number" id="valorBonus" placeholder="Valor R$" style="width: 30%;">
+                <button onclick="darBonus()" class="btn-blue">Enviar</button>
+                <p style="font-size: 11px; color: #64748b; margin-top: 10px;">Clique no ID de um jogador na lista para selecionar.</p>
+            </div>
         </div>
 
         <div class="card">
-            <h3>🎁 Adicionar Bônus por ID</h3>
-            <p style="font-size: 12px; color: #94a3b8;">Dica: Clique em um ID na tabela abaixo para colar automaticamente aqui.</p>
-            <input type="text" id="targetId" placeholder="ID do Jogador">
-            <input type="number" id="valorBonus" placeholder="Valor R$">
-            <button onclick="darBonus()" style="background: #3b82f6;">Confirmar Bônus</button>
-        </div>
-
-        <div class="card">
-            <h3>👥 Lista de Jogadores</h3>
+            <h3 style="color: var(--danger);">💸 Saques Pendentes (Aguardando PIX)</h3>
             <table>
                 <thead>
                     <tr>
-                        <th>ID (Clique p/ copiar)</th>
-                        <th>Nome</th>
-                        <th>Saldo</th>
+                        <th>Nome do Jogador</th>
+                        <th>Valor do Prêmio</th>
+                        <th>Chave PIX</th>
+                        <th>Ação</th>
                     </tr>
                 </thead>
-                <tbody id="listaUser">
-                    <tr><td colspan="3">Carregando jogadores...</td></tr>
+                <tbody id="listaSaques">
+                    <tr><td colspan="4">Carregando saques...</td></tr>
                 </tbody>
             </table>
         </div>
 
         <div class="card">
-            <h3>💸 Saques Pendentes</h3>
+            <h3>👥 Todos os Jogadores</h3>
             <table>
                 <thead>
                     <tr>
-                        <th>Jogador</th>
-                        <th>Valor</th>
-                        <th>Pix</th>
-                        <th>Ação</th>
+                        <th>ID (Clique p/ copiar)</th>
+                        <th>Nome</th>
+                        <th>Saldo Jogo</th>
+                        <th>Ganhos (Saque)</th>
                     </tr>
                 </thead>
-                <tbody id="listaSaques">
-                    <tr><td colspan="4">Nenhum saque pendente.</td></tr>
+                <tbody id="listaUser">
+                    <tr><td colspan="4">Carregando lista...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -79,9 +107,9 @@
 
     <script>
         let pass = "";
+        const API = ""; // Deixe vazio se o HTML estiver na mesma pasta do server.js
 
         async function carregarDash() {
-            // Se já tivermos a senha, usamos ela, se não pegamos do input
             const inputSenha = document.getElementById('senha').value;
             if(inputSenha) pass = inputSenha;
 
@@ -93,65 +121,60 @@
                 });
 
                 if(!res.ok) {
-                    alert("Senha incorreta ou erro no servidor.");
+                    alert("Acesso Negado. Verifique a senha.");
                     return;
                 }
 
                 const data = await res.json();
                 
-                // Mostrar o painel e esconder o login
                 document.getElementById('login').classList.add('hidden');
                 document.getElementById('dash').classList.remove('hidden');
 
-                // Atualizar Lucros e Banco (Proteção contra valores nulos)
+                // Atualizar Números
                 document.getElementById('lucroRodada').innerText = "R$ " + (data.lucroRodada || 0).toFixed(2);
-                document.getElementById('banco').innerText = (data.bancoJogadores || 0).toFixed(2);
+                document.getElementById('banco').innerText = (data.lucroTotalHistorico || 0).toFixed(2);
 
-                // Listar Usuários
+                // Listar Jogadores
                 const listaUser = document.getElementById('listaUser');
-                if (data.jogadores && data.jogadores.length > 0) {
-                    listaUser.innerHTML = data.jogadores.map(j => `
-                        <tr>
-                            <td class="copy-id" onclick="selecionarUsuario('${j._id}')">${j._id}</td>
-                            <td>${j.name}</td>
-                            <td style="color:#22c55e">R$ ${j.saldo.toFixed(2)}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    listaUser.innerHTML = "<tr><td colspan='3'>Nenhum jogador encontrado.</td></tr>";
-                }
+                listaUser.innerHTML = data.jogadores.map(j => `
+                    <tr>
+                        <td class="copy-id" onclick="selecionarUsuario('${j._id}')">${j._id.substring(18)}...</td>
+                        <td>${j.name}</td>
+                        <td style="color:#22c55e">R$ ${j.saldo.toFixed(2)}</td>
+                        <td style="color:#facc15">R$ ${(j.valorLiberadoSaque || 0).toFixed(2)}</td>
+                    </tr>
+                `).join('');
 
-                // Listar Saques
+                // Listar Saques (Aqui estava o erro do sumiço)
                 const listaSaques = document.getElementById('listaSaques');
                 if (data.saques && data.saques.length > 0) {
                     listaSaques.innerHTML = data.saques.map(s => `
-                        <tr>
-                            <td>${s.userName}</td>
-                            <td>R$ ${s.valor.toFixed(2)}</td>
-                            <td>${s.chavePix}</td>
-                            <td><button onclick="pagar('${s._id}')">✅ Marcar Pago</button></td>
+                        <tr class="saque-row">
+                            <td><b>${s.userName}</b></td>
+                            <td style="color: var(--success); font-weight:bold;">R$ ${s.valor.toFixed(2)}</td>
+                            <td><code style="background:#000; padding:4px; border-radius:4px;">${s.chavePix}</code></td>
+                            <td>
+                                <button onclick="pagar('${s._id}')" style="background:var(--success); font-size:12px;">✅ MARCAR PAGO</button>
+                            </td>
                         </tr>
                     `).join('');
                 } else {
-                    listaSaques.innerHTML = "<tr><td colspan='4'>Nenhum saque pendente.</td></tr>";
+                    listaSaques.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#64748b;'>Nenhum saque pendente no momento.</td></tr>";
                 }
 
             } catch (err) {
-                console.error(err);
-                alert("Erro ao conectar com o servidor.");
+                alert("Servidor Offline");
             }
         }
 
         function selecionarUsuario(id) {
             document.getElementById('targetId').value = id;
-            alert("ID selecionado: " + id);
         }
 
         async function darBonus() {
             const userId = document.getElementById('targetId').value;
             const valor = document.getElementById('valorBonus').value;
-            
-            if(!userId || !valor) return alert("Preencha o ID e o Valor");
+            if(!userId || !valor) return alert("Selecione o usuário e o valor.");
 
             const res = await fetch('/admin/dar-bonus', {
                 method: 'POST',
@@ -160,27 +183,28 @@
             });
 
             if(res.ok) {
-                alert("Bônus adicionado com sucesso!");
-                document.getElementById('valorBonus').value = "";
-                carregarDash(); // Atualiza a lista
+                alert("Bônus creditado!");
+                carregarDash();
             } else {
-                alert("Erro ao adicionar bônus.");
+                alert("Erro ao enviar bônus.");
             }
         }
 
+        // FUNÇÃO PARA SUMIR DA LISTA
         async function pagar(id) {
-            if(!confirm("Deseja marcar este saque como pago? Isso irá removê-lo da lista.")) return;
+            if(!confirm("Você confirma que já fez o PIX? O nome sumirá da lista agora.")) return;
 
-            const res = await fetch('/admin/finalizar-saque', {
+            const res = await fetch('/admin/excluir-saque', { // ROTA IGUAL AO SERVER.JS
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ senha: pass, saqueId: id })
             });
 
             if(res.ok) {
-                carregarDash();
+                alert("Sucesso! Registro removido.");
+                carregarDash(); // RECARREGA A TELA E O NOME SOME
             } else {
-                alert("Erro ao processar.");
+                alert("Erro ao deletar registro.");
             }
         }
     </script>
