@@ -27,7 +27,7 @@
         .status-label { font-size: 7px; color: #94a3b8; text-transform: uppercase; font-weight: bold; pointer-events: none; }
         .status-val { font-size: 11px; font-weight: bold; pointer-events: none; }
         
-        /* ESTILO DO RANKING ADICIONADO */
+        /* RANKING */
         .ranking-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; margin: 10px; padding: 8px; }
         .ranking-title { color: var(--primary); font-size: 10px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
         .ranking-list { display: flex; flex-direction: column; gap: 4px; }
@@ -49,6 +49,7 @@
         .num-c { font-size: 12px; font-weight: 800; background: #f1f5f9; padding: 8px 0; border-radius: 4px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; }
         .marcado { background: var(--success) !important; color: white !important; border-color: var(--success) !important; }
         
+        /* RESTANTE */
         .card { background: var(--card); padding: 10px; border-radius: 10px; border: 1px solid var(--primary); margin: 5px; box-sizing: border-box; }
         .bola-sorteada-master { width: 65px; height: 65px; background: radial-gradient(circle at 30% 30%, #ffffff, #facc15 50%, #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; color: #000; border: 2px solid #78350f; flex-shrink: 0; }
         .painel-numeros { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #0f172a; padding: 4px; border-radius: 6px; flex: 1; }
@@ -102,7 +103,12 @@
 
     <div class="status-bar-topo">
         <div class="status-item"><span class="status-label">Tempo</span><span id="timerTxt" class="status-val" style="color:var(--primary);">--:--</span></div>
-        <div class="status-item"><span class="status-label">Saldo</span><span id="playerSaldoStatus" class="status-val" style="color:var(--success);">R$ 0,00</span></div>
+        
+        <div class="status-item" onclick="abrirModalSaque()" style="cursor:pointer;">
+            <span class="status-label">Saldo</span>
+            <span id="playerSaldoStatus" class="status-val" style="color:var(--success);">R$ 0,00</span>
+        </div>
+
         <div class="status-item"><span class="status-label">Cartelas</span><span id="countCartelas" class="status-val" style="color:white;">0</span></div>
         <div class="status-item" onclick="copiarID()">
             <span class="status-label">ID (Copiar)</span>
@@ -176,7 +182,6 @@
     let pixCopiaCola = "";
     let avisoGanhadorExibido = false;
 
-    // ... Funções auxiliares mantidas ...
     function setValorPix(v) { document.getElementById('valorInputManual').value = v; }
     function toggleMenu() { document.getElementById('menuLateral').classList.toggle('hidden'); }
     function mostrarCadastro() { document.getElementById('telaLogin').classList.add('hidden'); document.getElementById('telaCadastro').classList.remove('hidden'); }
@@ -184,6 +189,13 @@
     function logout() { localStorage.clear(); location.reload(); }
     function abrirModalValor() { document.getElementById('modalValor').classList.remove('hidden'); }
     
+    // FUNÇÃO DE SAQUE CORRIGIDA
+    function abrirModalSaque() {
+        document.getElementById('modalSaque').classList.remove('hidden');
+        // Fecha o menu lateral caso esteja aberto
+        document.getElementById('menuLateral').classList.add('hidden');
+    }
+
     async function atualizarRanking() {
         try {
             const res = await fetch(`${API}/top-ganhadores`);
@@ -332,7 +344,7 @@
             grade.innerHTML = "";
             for (let i = 1; i <= 50; i++) grade.innerHTML += `<div class="num-check">${i}</div>`;
             setInterval(atualizarInterface, 1500);
-            setInterval(atualizarRanking, 30000); // Ranking atualiza a cada 30s
+            setInterval(atualizarRanking, 30000);
             atualizarInterface();
             atualizarRanking();
         }
