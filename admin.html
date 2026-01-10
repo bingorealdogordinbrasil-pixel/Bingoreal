@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - Bingo Real</title>
+    <style>
+        body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; margin: 0; }
+        .container { max-width: 900px; margin: auto; padding: 10px; }
+        .login-box { background: #1e293b; padding: 30px; border-radius: 12px; text-align: center; margin-top: 50px; border: 1px solid #facc15; }
+        h2 { color: #facc15; }
+        input { padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #020617; color: white; margin-bottom: 15px; width: 80%; max-width: 300px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1e293b; border-radius: 8px; overflow: hidden; font-size: 14px; }
+        th, td { padding: 15px; border: 1px solid #334155; text-align: left; }
+        th { background: #334155; color: #facc15; text-transform: uppercase; font-size: 11px; }
+        .btn-pago { background: #22c55e; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-pago:hover { background: #16a34a; }
+        .copy-btn { background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 8px; }
+        .hidden { display: none !important; }
+        .pix-box { background:#020617; padding:8px; border-radius:4px; font-family:monospace; color: #facc15; display: block; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loginAdmin" class="login-box">
+            <h2>PAINEL DE SAQUES</h2>
+            <p>Acesso restrito ao administrador</p>
+            <input type="password" id="senhaAdminInput" placeholder="Senha Mestre">
+            <br>
+            <button class="btn-pago" style="width: 200px;" onclick="carregarSaques()">ENTRAR NO PAINEL</button>
+        </div>
+
+        <div id="painelConteudo" class="hidden">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2>💸 Pedidos Pendentes</h2>
+                <button onclick="location.reload()" style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer;">SAIR</button>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Jogador</th>
+                        <th>Valor</th>
+                        <th>Dados PIX</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaSaques">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let senhaMestra = "";
+
+        async function carregarSaques() {
+            const input = document.getElementById('senhaAdminInput').value;
+            const senhaUsar = input || senhaMestra;
+
+            try {
+                const res = await fetch('/admin/saques', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ senha: senhaUsar })
+                });
+
+                if(res.ok) {
+                    const saques = await res.json();
+                    senhaMestra = senhaUsar;
+                    document.getElementById('loginAdmin').classList.add('hidden');
+                    document.getElementById('painelConteudo').classList.remove('hidden');
+                    
+                    const html = saques.map(s => `
+                        <tr>
+                            <td>${new Date(s.data).toLocaleDateString('pt-BR')}</td>
+                            <td>${s.userName}</td>
+                            <td style="color:#22c55e; font-weight:bold;">R$ ${s.valor.toFixed(2)}</td>
+                            <td>
+                                <span class="pix-box">${s.chavePix}</span>
+                                <button class="copy-btn" onclick="copiarPix('${s.chavePix}')">COPIAR CHAVE</button>
+                            </td>
+                            <td>
+                                <button class="btn-pago" onclick="finalizarSaque('${s._id}')">MARCAR COMO PAGO ✅</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    document.getElementById('tabelaSaques').innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Nenhum pedido de saque.</td></tr>';
+                } else {
+                    alert("Senha incorreta!");
+                }
+            } catch (e) {
+                alert("Erro ao conectar.");
+            }
+        }
+
+        function copiarPix(chave) {
+            navigator.clipboard.writeText(chave);
+            alert("Pix copiado!");
+        }
+
+        async function finalizarSaque(id) {
+            if(!confirm("Você já fez o Pix para o jogador?")) return;
+            
+            const res = await fetch('/admin/finalizar-saque', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ saqueId: id, senha: senhaMestra })
+            });
+
+            if(res.ok) {
+                alert("Concluído!");
+                carregarSaques();
+            }
+        }
+
+        // Atualiza a cada 20 segundos
+        setInterval(() => { if(senhaMestra) carregarSaques(); }, 20000);
+    </script>
+</body>
+</html>
