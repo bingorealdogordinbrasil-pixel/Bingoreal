@@ -157,6 +157,16 @@ app.post('/solicitar-saque', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
+// --- ROTA DE BÔNUS (CORRIGIDA) ---
+app.post('/admin/dar-bonus', async (req, res) => {
+    const { senha, userId, valor } = req.body;
+    if (senha !== SENHA_ADMIN) return res.status(401).send();
+    try {
+        await User.findByIdAndUpdate(userId, { $inc: { saldo: parseFloat(valor) } });
+        res.json({ success: true });
+    } catch (e) { res.status(500).send(); }
+});
+
 app.get('/top-ganhadores', async (req, res) => {
     try {
         const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } }).sort({ valorLiberadoSaque: -1 }).limit(10).select('name valorLiberadoSaque');
