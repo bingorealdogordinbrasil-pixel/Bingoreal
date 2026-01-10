@@ -1,4 +1,4 @@
-const express = require('express'); // Corrigido para minúsculo
+const express = require('express'); // CORRIGIDO: agora com 'c' minúsculo
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '/')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-// --- CONFIGURAÇÃO DE SEGURANÇA ---
+// --- SEGURANÇA ---
 const SENHA_ADMIN = "bingo2026"; 
 
 // --- MERCADO PAGO ---
@@ -41,7 +41,7 @@ const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
     data: { type: Date, default: Date.now }
 }));
 
-// --- MOTOR DO JOGO ---
+// --- JOGO ---
 let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0 };
 
 setInterval(async () => {
@@ -89,14 +89,12 @@ app.post('/login', async (req, res) => {
     u ? res.json(u) : res.status(401).send();
 });
 
-// --- 👤 ROTAS DE GERENTE (PARA VER LUCROS E DAR BÔNUS) ---
+// --- ROTAS GERENTE (ADMIN) ---
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
-    try {
-        const jogadores = await User.find({}, 'name email saldo _id');
-        const saques = await Withdrawal.find().sort({ data: -1 });
-        res.json({ jogadores, saques });
-    } catch (e) { res.status(500).send(); }
+    const jogadores = await User.find({}, 'name email saldo _id');
+    const saques = await Withdrawal.find().sort({ data: -1 });
+    res.json({ jogadores, saques });
 });
 
 app.post('/admin/dar-bonus', async (req, res) => {
@@ -106,6 +104,12 @@ app.post('/admin/dar-bonus', async (req, res) => {
         const u = await User.findByIdAndUpdate(userId, { $inc: { saldo: parseFloat(valor) } }, { new: true });
         res.json({ success: true, novoSaldo: u.saldo });
     } catch (e) { res.status(400).send(); }
+});
+
+app.post('/admin/finalizar-saque', async (req, res) => {
+    if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
+    await Withdrawal.findByIdAndDelete(req.body.saqueId);
+    res.json({ success: true });
 });
 
 app.listen(process.env.PORT || 10000);
