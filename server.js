@@ -1,4 +1,4 @@
-const express = require('express'); // CORRIGIDO: agora com 'c' minúsculo
+const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '/')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-// --- SEGURANÇA ---
+// --- CONFIGURAÇÃO ---
 const SENHA_ADMIN = "bingo2026"; 
 
 // --- MERCADO PAGO ---
@@ -41,8 +41,16 @@ const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
     data: { type: Date, default: Date.now }
 }));
 
-// --- JOGO ---
-let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0 };
+// --- MOTOR DO JOGO ---
+let jogo = { 
+    bolas: [], 
+    fase: "acumulando", 
+    premioAcumulado: 0, 
+    tempoSegundos: 300, 
+    ganhador: null,
+    valorGanho: 0,
+    totalVendasRodada: 0 
+};
 
 setInterval(async () => {
     if (jogo.fase === "acumulando") {
@@ -79,22 +87,89 @@ async function realizarSorteio() {
 }
 
 function reiniciarGlobal() {
-    jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0 };
+    jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
 }
 
 // --- ROTAS DO JOGO ---
 app.get('/game-status', (req, res) => res.json(jogo));
+
 app.post('/login', async (req, res) => {
     const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
     u ? res.json(u) : res.status(401).send();
 });
 
-// --- ROTAS GERENTE (ADMIN) ---
+app.post('/register', async (req, res) => {
+    try { const u = new User(req.body); await u.save(); res.json(u); } catch(e) { res.status(400).send(); }
+});
+
+app.get('/user-data/:id', async (req, res) => {
+    try { const u = await User.findById(req.params.id); res.json(u); } catch (e) { res.status(404).send(); }
+});
+
+app.post('/comprar-com-saldo', async (req, res) => {
+    const { usuarioId, quantidade } = req.body;
+    const user = await User.findById(usuarioId);
+    const custo = parseInt(quantidade) * 2;
+    if (user && user.saldo >= custo && jogo.fase === "acumulando") {
+        let novas = [];
+        for (let i = 0; i < quantidade; i++) {
+            let n = [];
+            while(n.length < 8) {
+                let num = Math.floor(Math.random()*50)+1;
+                if(!n.includes(num)) n.push(num);
+            }
+            novas.push(n.sort((a,b)=>a-b));
+        }
+        await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { cartelas: { $each: novas } } });
+        jogo.premioAcumulado += (custo * 0.25);
+        jogo.totalVendasRodada += custo;
+        res.json({ success: true });
+    } else res.status(400).send();
+});
+
+// --- PIX ---
+app.post('/gerar-pix', async (req, res) => {
+    const { userId, valor } = req.body;
+    try {
+        const response = await payment.create({
+            body: {
+                transaction_amount: parseFloat(valor),
+                description: `Bingo Real`,
+                payment_method_id: 'pix',
+                payer: { email: 'contato@bingoreal.com' },
+                external_reference: userId
+            }
+        });
+        res.json({
+            qr_code: response.point_of_interaction.transaction_data.qr_code,
+            qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64
+        });
+    } catch (e) { res.status(500).send(); }
+});
+
+app.post('/webhook', async (req, res) => {
+    const { action, data } = req.body;
+    if (action === "payment.updated") {
+        try {
+            const p = await payment.get({ id: data.id });
+            if (p.status === "approved") {
+                await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
+            }
+        } catch (e) {}
+    }
+    res.sendStatus(200);
+});
+
+// --- GERENTE (ADMIN) ---
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
     const jogadores = await User.find({}, 'name email saldo _id');
     const saques = await Withdrawal.find().sort({ data: -1 });
-    res.json({ jogadores, saques });
+    res.json({ 
+        jogadores, 
+        saques, 
+        lucroRodada: jogo.totalVendasRodada - jogo.premioAcumulado 
+    });
 });
 
 app.post('/admin/dar-bonus', async (req, res) => {
@@ -112,4 +187,19 @@ app.post('/admin/finalizar-saque', async (req, res) => {
     res.json({ success: true });
 });
 
+app.post('/solicitar-saque', async (req, res) => {
+    const { userId, valor, chavePix } = req.body;
+    const v = parseFloat(valor);
+    try {
+        const user = await User.findById(userId);
+        if (user && user.saldo >= v && v >= 20) {
+            await User.findByIdAndUpdate(userId, { $inc: { saldo: -v } });
+            const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
+            await pedido.save();
+            res.json({ success: true });
+        } else res.status(400).json({ error: "Saldo insuficiente" });
+    } catch (e) { res.status(500).send(); }
+});
+
 app.listen(process.env.PORT || 10000);
+         
