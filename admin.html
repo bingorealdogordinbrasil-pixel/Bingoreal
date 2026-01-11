@@ -2,211 +2,210 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Gerência Bingo Real</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - Bingo Real</title>
     <style>
         :root {
             --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text: #f8fafc;
+            --card: #1e293b;
             --primary: #3b82f6;
             --success: #22c55e;
-            --accent: #facc15;
             --danger: #ef4444;
+            --accent: #facc15;
+            --text: #f8fafc;
         }
 
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
-        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
         
-        input { background: #0f172a; color: white; border: 1px solid #334155; padding: 12px; border-radius: 8px; margin: 5px; outline: none; }
-        input:focus { border-color: var(--primary); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid var(--card); padding-bottom: 15px; }
+        .card { background: var(--card); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #334155; }
         
-        button { cursor: pointer; font-weight: bold; padding: 12px 20px; border-radius: 8px; border: none; transition: 0.2s; }
-        .btn-green { background: var(--success); color: white; }
-        .btn-blue { background: var(--primary); color: white; }
-        .btn-refresh { background: var(--accent); color: #000; }
-        button:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: var(--card); padding: 15px; border-radius: 10px; text-align: center; border-left: 4px solid var(--primary); }
+        .stat-box h4 { margin: 0; color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; }
+        .stat-box p { margin: 10px 0 0; font-size: 1.5rem; font-weight: bold; color: var(--success); }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #1a2233; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 14px; text-align: left; border-bottom: 1px solid #334155; }
-        th { background: #0a0f1d; color: var(--accent); font-size: 0.9em; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th { text-align: left; padding: 12px; background: #0f172a; color: var(--accent); }
+        td { padding: 12px; border-bottom: 1px solid #334155; }
         
+        input { background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; }
+        button { cursor: pointer; border: none; border-radius: 6px; padding: 10px 15px; font-weight: bold; transition: 0.3s; }
+        
+        .btn-pay { background: var(--success); color: white; width: 100%; }
+        .btn-pay:hover { background: #16a34a; }
+        .btn-bonus { background: var(--primary); color: white; margin-top: 10px; }
+        .btn-refresh { background: var(--accent); color: #000; }
+
         .hidden { display: none; }
-        .copy-id { cursor: pointer; color: var(--primary); font-family: monospace; font-weight: bold; }
-        .saque-row:hover { background: #243147; }
-        
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .pix-code { background: #000; color: var(--success); padding: 5px; border-radius: 4px; font-family: monospace; font-size: 0.8rem; word-break: break-all; }
     </style>
 </head>
 <body>
 
-    <div id="login" style="max-width: 400px; margin: 100px auto; text-align: center;">
-        <h2 style="color: var(--accent);">👑 Bingo Gerente</h2>
-        <div class="card">
-            <input type="password" id="senha" placeholder="Senha do Administrador" style="width: 80%;">
-            <br><br>
-            <button onclick="carregarDash()" class="btn-green" style="width: 90%;">Entrar no Painel</button>
-        </div>
+<div class="container">
+    <div id="loginArea" class="card" style="max-width: 400px; margin: 100px auto;">
+        <h2 style="text-align: center; color: var(--accent);">Admin Bingo</h2>
+        <input type="password" id="adminSenha" placeholder="Digite a senha master">
+        <button onclick="logar()" class="btn-bonus" style="width: 100%; margin-top: 15px;">Acessar Painel</button>
     </div>
 
-    <div id="dash" class="hidden">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1>🛠️ Painel de Controle</h1>
-            <button class="btn-refresh" onclick="carregarDash()">🔄 ATUALIZAR DADOS</button>
+    <div id="mainArea" class="hidden">
+        <div class="header">
+            <h1>👑 Gerência Real</h1>
+            <button onclick="carregarDados()" class="btn-refresh">🔄 Atualizar Tudo</button>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div class="card">
-                <h3 style="margin-top:0">💰 Lucro desta Rodada</h3>
-                <h2 id="lucroRodada" style="color: var(--success); font-size: 2.5em; margin: 10px 0;">R$ 0,00</h2>
-                <p style="color: #94a3b8;">Saldo Total em Banco: R$ <span id="banco" style="color:white">0,00</span></p>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <h4>Lucro da Rodada</h4>
+                <p id="txtLucroRodada">R$ 0,00</p>
             </div>
-
-            <div class="card">
-                <h3 style="margin-top:0">🎁 Adicionar Bônus</h3>
-                <input type="text" id="targetId" placeholder="ID do Jogador" style="width: 40%;">
-                <input type="number" id="valorBonus" placeholder="Valor R$" style="width: 30%;">
-                <button onclick="darBonus()" class="btn-blue">Enviar</button>
-                <p style="font-size: 11px; color: #64748b; margin-top: 10px;">Clique no ID de um jogador na lista para selecionar.</p>
+            <div class="stat-box" style="border-left-color: var(--accent);">
+                <h4>Prêmio Atual</h4>
+                <p id="txtPremio" style="color: var(--accent);">R$ 100,00</p>
+            </div>
+            <div class="stat-box" style="border-left-color: #8b5cf6;">
+                <h4>Vendas Rodada</h4>
+                <p id="txtVendas" style="color: #8b5cf6;">R$ 0,00</p>
             </div>
         </div>
 
         <div class="card">
-            <h3 style="color: var(--danger);">💸 Saques Pendentes (Aguardando PIX)</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nome do Jogador</th>
-                        <th>Valor do Prêmio</th>
-                        <th>Chave PIX</th>
-                        <th>Ação</th>
-                    </tr>
-                </thead>
-                <tbody id="listaSaques">
-                    <tr><td colspan="4">Carregando saques...</td></tr>
-                </tbody>
-            </table>
+            <h3 style="color: var(--danger); margin-top: 0;">💸 Saques para Pagar (PIX)</h3>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Jogador</th>
+                            <th>Valor</th>
+                            <th>Chave PIX</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaSaques">
+                        <tr><td colspan="4">Nenhum saque pendente.</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="card">
-            <h3>👥 Todos os Jogadores</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID (Clique p/ copiar)</th>
-                        <th>Nome</th>
-                        <th>Saldo Jogo</th>
-                        <th>Ganhos (Saque)</th>
-                    </tr>
-                </thead>
-                <tbody id="listaUser">
-                    <tr><td colspan="4">Carregando lista...</td></tr>
-                </tbody>
-            </table>
+            <h3>🎁 Dar Bônus / Crédito</h3>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="bnId" placeholder="ID do Usuário">
+                <input type="number" id="bnValor" placeholder="Valor R$">
+                <button onclick="enviarBonus()" class="btn-bonus">Credit|ar</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>👥 Jogadores Registrados</h3>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Saldo</th>
+                            <th>ID (clique para copiar)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaUsers"></tbody>
+                </table>
+            </div>
         </div>
     </div>
+</div>
 
-    <script>
-        let pass = "";
-        const API = ""; // Deixe vazio se o HTML estiver na mesma pasta do server.js
+<script>
+    let masterPass = "";
 
-        async function carregarDash() {
-            const inputSenha = document.getElementById('senha').value;
-            if(inputSenha) pass = inputSenha;
+    function logar() {
+        masterPass = document.getElementById('adminSenha').value;
+        carregarDados();
+    }
 
-            try {
-                const res = await fetch('/admin/dashboard', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ senha: pass })
-                });
+    async function carregarDados() {
+        try {
+            const res = await fetch('/admin/dashboard', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ senha: masterPass })
+            });
 
-                if(!res.ok) {
-                    alert("Acesso Negado. Verifique a senha.");
-                    return;
-                }
+            if (!res.ok) return alert("Senha Incorreta!");
 
-                const data = await res.json();
-                
-                document.getElementById('login').classList.add('hidden');
-                document.getElementById('dash').classList.remove('hidden');
+            const data = await res.json();
+            document.getElementById('loginArea').classList.add('hidden');
+            document.getElementById('mainArea').classList.remove('hidden');
 
-                // Atualizar Números
-                document.getElementById('lucroRodada').innerText = "R$ " + (data.lucroRodada || 0).toFixed(2);
-                document.getElementById('banco').innerText = (data.lucroTotalHistorico || 0).toFixed(2);
+            // Stats
+            document.getElementById('txtLucroRodada').innerText = `R$ ${data.lucroRodada.toFixed(2)}`;
+            document.getElementById('txtVendas').innerText = `R$ ${data.vendasRodada.toFixed(2)}`;
 
-                // Listar Jogadores
-                const listaUser = document.getElementById('listaUser');
-                listaUser.innerHTML = data.jogadores.map(j => `
+            // Tabela Saques
+            const tabSaques = document.getElementById('tabelaSaques');
+            if (data.saques.length === 0) {
+                tabSaques.innerHTML = `<tr><td colspan="4" style="text-align:center">Tudo pago! ✅</td></tr>`;
+            } else {
+                tabSaques.innerHTML = data.saques.map(s => `
                     <tr>
-                        <td class="copy-id" onclick="selecionarUsuario('${j._id}')">${j._id.substring(18)}...</td>
-                        <td>${j.name}</td>
-                        <td style="color:#22c55e">R$ ${j.saldo.toFixed(2)}</td>
-                        <td style="color:#facc15">R$ ${(j.valorLiberadoSaque || 0).toFixed(2)}</td>
+                        <td><b>${s.userName}</b></td>
+                        <td style="color:var(--success)">R$ ${s.valor.toFixed(2)}</td>
+                        <td><div class="pix-code">${s.chavePix}</div></td>
+                        <td><button onclick="confirmarPagamento('${s._id}')" class="btn-pay">PAGO</button></td>
                     </tr>
                 `).join('');
-
-                // Listar Saques (Aqui estava o erro do sumiço)
-                const listaSaques = document.getElementById('listaSaques');
-                if (data.saques && data.saques.length > 0) {
-                    listaSaques.innerHTML = data.saques.map(s => `
-                        <tr class="saque-row">
-                            <td><b>${s.userName}</b></td>
-                            <td style="color: var(--success); font-weight:bold;">R$ ${s.valor.toFixed(2)}</td>
-                            <td><code style="background:#000; padding:4px; border-radius:4px;">${s.chavePix}</code></td>
-                            <td>
-                                <button onclick="pagar('${s._id}')" style="background:var(--success); font-size:12px;">✅ MARCAR PAGO</button>
-                            </td>
-                        </tr>
-                    `).join('');
-                } else {
-                    listaSaques.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#64748b;'>Nenhum saque pendente no momento.</td></tr>";
-                }
-
-            } catch (err) {
-                alert("Servidor Offline");
             }
+
+            // Tabela Users
+            document.getElementById('tabelaUsers').innerHTML = data.jogadores.map(u => `
+                <tr>
+                    <td>${u.name}</td>
+                    <td>R$ ${u.saldo.toFixed(2)}</td>
+                    <td onclick="copy('${u._id}')" style="cursor:pointer; color:var(--primary)">${u._id.substring(15)}... (copiar)</td>
+                </tr>
+            `).join('');
+
+        } catch (e) {
+            alert("Erro ao conectar ao servidor.");
         }
+    }
 
-        function selecionarUsuario(id) {
-            document.getElementById('targetId').value = id;
+    async function confirmarPagamento(id) {
+        if (!confirm("Você já fez o PIX? O nome sumirá da lista agora.")) return;
+
+        const res = await fetch('/admin/finalizar-saque', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ senha: masterPass, saqueId: id })
+        });
+
+        if (res.ok) {
+            alert("Registro removido com sucesso!");
+            carregarDados();
+        } else {
+            alert("Erro ao remover. Verifique o servidor.");
         }
+    }
 
-        async function darBonus() {
-            const userId = document.getElementById('targetId').value;
-            const valor = document.getElementById('valorBonus').value;
-            if(!userId || !valor) return alert("Selecione o usuário e o valor.");
+    async function enviarBonus() {
+        const userId = document.getElementById('bnId').value;
+        const valor = document.getElementById('bnValor').value;
+        const res = await fetch('/admin/dar-bonus', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ senha: masterPass, userId, valor })
+        });
+        if (res.ok) { alert("Bônus enviado!"); carregarDados(); }
+    }
 
-            const res = await fetch('/admin/dar-bonus', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ senha: pass, userId, valor })
-            });
-
-            if(res.ok) {
-                alert("Bônus creditado!");
-                carregarDash();
-            } else {
-                alert("Erro ao enviar bônus.");
-            }
-        }
-
-        // FUNÇÃO PARA SUMIR DA LISTA
-        async function pagar(id) {
-            if(!confirm("Você confirma que já fez o PIX? O nome sumirá da lista agora.")) return;
-
-            const res = await fetch('/admin/excluir-saque', { // ROTA IGUAL AO SERVER.JS
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ senha: pass, saqueId: id })
-            });
-
-            if(res.ok) {
-                alert("Sucesso! Registro removido.");
-                carregarDash(); // RECARREGA A TELA E O NOME SOME
-            } else {
-                alert("Erro ao deletar registro.");
-            }
-        }
-    </script>
+    function copy(id) {
+        navigator.clipboard.writeText(id);
+        document.getElementById('bnId').value = id;
+        alert("ID copiado para o campo de bônus!");
+    }
+</script>
 </body>
 </html>
