@@ -13,6 +13,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 const SENHA_ADMIN = "bingo2026"; 
 
+// --- CONFIGURAÇÃO MERCADO PAGO ---
 const client = new MercadoPagoConfig({ 
     accessToken: 'APP_USR-2683158167668377-123121-4666c74759e0eac123b8c4c23bf7c1f1-485513741' 
 });
@@ -41,10 +42,11 @@ const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
 }));
 
 let lucroGeralAcumulado = 0; 
+// Inicia o prêmio do servidor em 100 na primeira execução
 let jogo = { 
     bolas: [], 
     fase: "acumulando", 
-    premioAcumulado: 0, 
+    premioAcumulado: 100, 
     tempoSegundos: 300, 
     ganhador: null, 
     valorGanho: 0,
@@ -109,14 +111,22 @@ async function reiniciarGlobal() {
                 $set: { cartelas: u.cartelasProximaRodada, cartelasProximaRodada: [] }
             });
         }
-        jogo = { bolas: [], fase: "acumulando", premioAcumulado: (vendasIniciais * 0.25), tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: vendasIniciais };
+        // AQUI ESTÁ A MUDANÇA: Premio inicial de 100 + cartelas vendidas
+        jogo = { 
+            bolas: [], 
+            fase: "acumulando", 
+            premioAcumulado: 100 + (vendasIniciais * 0.25), 
+            tempoSegundos: 300, 
+            ganhador: null, 
+            valorGanho: 0, 
+            totalVendasRodada: vendasIniciais 
+        };
     } catch (e) {
-        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
+        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
     }
 }
 
 // --- ROTAS DO GERENTE ---
-
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
     try {
@@ -145,35 +155,45 @@ app.post('/admin/dar-bonus', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// --- ROTA TOP 10 (REVISADA) ---
 app.get('/top-ganhadores', async (req, res) => {
     try {
-        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } })
-            .sort({ valorLiberadoSaque: -1 })
-            .limit(10)
-            .select('name valorLiberadoSaque');
+        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } }).sort({ valorLiberadoSaque: -1 }).limit(10).select('name valorLiberadoSaque');
         res.json(tops);
     } catch (e) { res.status(500).send(); }
 });
 
-// --- ROTAS DO JOGADOR ---
+// --- ROTAS DE DEPÓSITO E SAQUE ---
+app.post('/gerar-pix', async (req, res) => {
+    const { userId, valor } = req.body;
+    try {
+        const response = await payment.create({ body: { transaction_amount: parseFloat(valor), description: "Depósito Bingo Real", payment_method_id: "pix", payer: { email: "cliente@bingoreal.com" }, external_reference: userId.toString() } });
+        res.json({ qr_code: response.point_of_interaction.transaction_data.qr_code, qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64 });
+    } catch (e) { res.status(500).json(e); }
+});
+
+app.post('/webhook', async (req, res) => {
+    const { action, data } = req.body;
+    if (action === "payment.updated") {
+        try {
+            const p = await payment.get({ id: data.id });
+            if (p.status === "approved") await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
+        } catch (e) {}
+    }
+    res.sendStatus(200);
+});
 
 app.post('/solicitar-saque', async (req, res) => {
     const { userId, valor, chavePix } = req.body;
     const v = parseFloat(valor);
     try {
         const user = await User.findById(userId);
-        if (!user) return res.status(404).send();
-        if (v > user.valorLiberadoSaque) {
-            return res.status(400).json({ error: `Valor não liberado. Você possui apenas R$ ${user.valorLiberadoSaque.toFixed(2)} disponíveis para saque.` });
-        }
-        if (v < 20) return res.status(400).json({ error: "O valor mínimo para saque é R$ 20,00" });
+        if (v > user.valorLiberadoSaque) return res.status(400).json({ error: "Valor não liberado." });
         if (user.saldo >= v) {
             await User.findByIdAndUpdate(userId, { $inc: { saldo: -v, valorLiberadoSaque: -v } });
             const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
             await pedido.save();
             res.json({ success: true });
-        } else { res.status(400).json({ error: "Saldo insuficiente." }); }
+        } else { res.status(400).send(); }
     } catch (e) { res.status(500).send(); }
 });
 
@@ -199,25 +219,6 @@ app.post('/comprar-com-saldo', async (req, res) => {
         }
         res.json({ success: true });
     } else res.status(400).send();
-});
-
-app.post('/gerar-pix', async (req, res) => {
-    const { userId, valor } = req.body;
-    try {
-        const response = await payment.create({ body: { transaction_amount: parseFloat(valor), description: "Bingo Real", payment_method_id: "pix", payer: { email: "cliente@bingoreal.com" }, external_reference: userId.toString() } });
-        res.json({ qr_code: response.point_of_interaction.transaction_data.qr_code, qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64 });
-    } catch (e) { res.status(500).json(e); }
-});
-
-app.post('/webhook', async (req, res) => {
-    const { action, data } = req.body;
-    if (action === "payment.updated") {
-        try {
-            const p = await payment.get({ id: data.id });
-            if (p.status === "approved") await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
-        } catch (e) {}
-    }
-    res.sendStatus(200);
 });
 
 app.post('/login', async (req, res) => {
