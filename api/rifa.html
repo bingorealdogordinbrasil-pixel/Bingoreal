@@ -13,87 +13,71 @@
         .premio-box { background: linear-gradient(45deg, #d4af37, #f1c40f); color: #000; padding: 10px 25px; border-radius: 50px; font-weight: 900; animation: pulse 2s infinite; display: inline-block; }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         .grid-tabela { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; max-height: 400px; overflow-y: auto; padding: 10px; background: #000; }
-        
-        /* Estilos dos itens */
         .num-item { padding: 15px 0; text-align: center; background: #181818; border: 1px solid #222; border-radius: 6px; cursor: pointer; color: #888; }
-        .num-item.selecionado { background: var(--primary); color: #000; font-weight: bold; border-color: #fff; }
+        .num-item.selecionado { background: var(--primary); color: #000; font-weight: bold; }
         .num-item.ocupado { background: #333; color: #555; cursor: not-allowed; opacity: 0.5; pointer-events: none; }
-
         #modal-pix { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:5000; justify-content:center; align-items:center; flex-direction:column; }
         .modal-content { background:#fff; padding:20px; border-radius:15px; color:#000; text-align:center; max-width: 300px; }
-        textarea { width: 100%; border: 1px solid #ccc; padding: 5px; border-radius: 5px; background: #f9f9f9; }
     </style>
 </head>
 <body>
 
 <header>
     <div class="navbar">
-        <div onclick="abrirCarrinho()" style="cursor:pointer; font-weight: bold;">🛒 <span id="cart-count">0</span> SELECIONADOS</div>
+        <div onclick="abrirCarrinho()" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
         <div style="color: var(--primary); font-weight: bold;">R$ 0,50 CADA</div>
-        <button onclick="abrirCarrinho()" style="background:var(--primary); border:none; padding:10px 15px; border-radius:5px; font-weight: bold; cursor: pointer;">PAGAR AGORA</button>
+        <button onclick="abrirCarrinho()" style="background:var(--primary); border:none; padding:10px; border-radius:5px; color:#000; font-weight:bold;">PAGAR</button>
     </div>
     <div id="painel-sorteio">
-        <div class="premio-box">🎁 PRÊMIO: R$ 500,00 NO PIX</div>
+        <div class="premio-box">🎁 PRÊMIO: R$ 500,00</div>
     </div>
 </header>
 
 <div id="modal-pix">
     <div class="modal-content">
-        <h3 id="modal-titulo">Gerando seu PIX...</h3>
-        <img id="qr-code-img" src="" style="width:200px; display: none;">
-        <div id="area-copia" style="display: none;">
+        <h3 id="modal-status">A gerar PIX...</h3>
+        <img id="qr-code-img" src="" style="width:200px; display:none; margin: auto;">
+        <div id="pix-container" style="display:none;">
             <p style="font-size: 12px;">Copia e Cola:</p>
-            <textarea id="pix-copia-cola" readonly></textarea>
-            <button onclick="copiarPix()" style="background: #2ecc71; color: #fff; width: 100%; border: none; padding: 8px; margin-top: 5px; border-radius: 5px;">COPIAR CÓDIGO</button>
+            <textarea id="pix-copia-cola" style="width:100%; height:40px;" readonly></textarea>
         </div>
-        <button onclick="fecharModal()" style="background:red; color:#fff; width:100%; border:none; padding:10px; margin-top:15px; border-radius: 5px;">FECHAR</button>
+        <button onclick="location.reload()" style="background:red; color:#fff; width:100%; border:none; padding:10px; margin-top:10px; border-radius:5px;">FECHAR</button>
     </div>
 </div>
 
 <div class="card" style="max-width:600px; margin: auto; padding: 15px;">
-    <p style="text-align: center; color: #666; font-size: 12px;">Navegue pelos milhares abaixo:</p>
-    <select id="filtro" onchange="renderizarTabela()" style="width:100%; padding:12px; background: #111; color: #fff; border: 1px solid var(--gold); border-radius: 8px; margin-bottom:15px;">
+    <select id="filtro" onchange="renderizarTabela()" style="width:100%; padding:12px; background:#111; color:#fff; border:1px solid var(--gold); margin-bottom:10px; border-radius:8px;">
         <option value="0">0000 a 0999</option>
         <option value="1000">1000 a 1999</option>
         <option value="2000">2000 a 2999</option>
-        <option value="3000">3000 a 3999</option>
-        <option value="4000">4000 a 4999</option>
-        <option value="5000">5000 a 5999</option>
-        <option value="6000">6000 a 6999</option>
-        <option value="7000">7000 a 7999</option>
-        <option value="8000">8000 a 8999</option>
-        <option value="9000">9000 a 9999</option>
-    </select>
+        </select>
     <div id="tabela" class="grid-tabela"></div>
 </div>
 
 <script>
     const selecionados = new Set();
-    const ocupados = new Set(); // Aqui ficarão os números do MongoDB
+    const ocupados = new Set();
     const PRECO = 0.50;
 
-    // Carregar números ocupados do banco ao abrir
     async function carregarOcupados() {
         try {
             const res = await fetch('/api/rifa/ocupados');
             const data = await res.json();
             data.forEach(n => ocupados.add(n));
             renderizarTabela();
-        } catch (e) { console.log("Erro ao carregar banco"); }
+        } catch (e) { console.error("Erro ao carregar ocupados"); }
     }
 
     function renderizarTabela() {
         const tabela = document.getElementById('tabela');
         const inicio = parseInt(document.getElementById('filtro').value);
         tabela.innerHTML = "";
-        
         for (let i = inicio; i <= inicio + 999; i++) {
             const numStr = i.toString().padStart(4, '0');
             const item = document.createElement('div');
-            
             if (ocupados.has(numStr)) {
                 item.className = 'num-item ocupado';
-                item.innerText = "VENDIDO";
+                item.innerText = "---";
             } else {
                 item.className = 'num-item' + (selecionados.has(numStr) ? ' selecionado' : '');
                 item.innerText = numStr;
@@ -111,56 +95,32 @@
     }
 
     async function gerarPixReal() {
-        if (selecionados.size === 0) return alert("Escolha pelo menos uma milhar!");
-        
         const total = (selecionados.size * PRECO).toFixed(2);
         const lista = Array.from(selecionados).join(',');
-
+        
         document.getElementById('modal-pix').style.display = 'flex';
-        document.getElementById('modal-titulo').innerText = "Gerando PIX...";
 
-        try {
-            const res = await fetch('/api/gerar-pix', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ valor: total, numeros: lista })
-            });
-            const data = await res.json();
-
-            if (data.point_of_interaction) {
-                document.getElementById('modal-titulo').innerText = "Pague Agora!";
-                document.getElementById('qr-code-img').src = `data:image/png;base64,${data.point_of_interaction.transaction_data.qr_code_base64}`;
-                document.getElementById('qr-code-img').style.display = 'block';
-                document.getElementById('pix-copia-cola').value = data.point_of_interaction.transaction_data.qr_code;
-                document.getElementById('area-copia').style.display = 'block';
-            }
-        } catch (e) {
-            alert("Erro ao conectar com servidor.");
-            fecharModal();
+        const res = await fetch('/api/gerar-pix', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ valor: total, numeros: lista })
+        });
+        
+        const data = await res.json();
+        if (data.point_of_interaction) {
+            document.getElementById('modal-status').innerText = "Pague com PIX";
+            document.getElementById('qr-code-img').src = `data:image/png;base64,${data.point_of_interaction.transaction_data.qr_code_base64}`;
+            document.getElementById('qr-code-img').style.display = 'block';
+            document.getElementById('pix-copia-cola').value = data.point_of_interaction.transaction_data.qr_code;
+            document.getElementById('pix-container').style.display = 'block';
         }
     }
 
     function abrirCarrinho() {
-        if(selecionados.size === 0) return alert("Seu carrinho está vazio!");
-        const total = (selecionados.size * PRECO).toFixed(2);
-        if(confirm(`Total: R$ ${total}\nNúmeros: ${Array.from(selecionados).join(', ')}\n\nDeseja gerar o PIX?`)) {
-            gerarPixReal();
-        }
+        if(selecionados.size === 0) return alert("Selecione números!");
+        if(confirm(`Total: R$ ${(selecionados.size * PRECO).toFixed(2)}\nGerar PIX?`)) gerarPixReal();
     }
 
-    function copiarPix() {
-        const text = document.getElementById('pix-copia-cola');
-        text.select();
-        document.execCommand('copy');
-        alert("Código PIX copiado!");
-    }
-
-    function fecharModal() {
-        document.getElementById('modal-pix').style.display = 'none';
-        location.reload(); // Recarrega para limpar seleções e atualizar ocupados
-    }
-
-    // Inicialização
     carregarOcupados();
 </script>
 </body>
