@@ -2,228 +2,140 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Administrativo - Bingo Real</title>
+    <title>Gerente Bingo Real</title>
     <style>
-        :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --primary: #3b82f6;
-            --success: #22c55e;
-            --danger: #ef4444;
-            --accent: #facc15;
-            --text: #f8fafc;
-        }
-
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: 0 auto; }
-        
-        /* Dashboard Stats */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-box { background: var(--card); padding: 20px; border-radius: 12px; text-align: center; border-bottom: 4px solid var(--primary); transition: 0.3s; }
-        .stat-box:hover { transform: translateY(-5px); }
-        .stat-box h4 { margin: 0; color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
-        .stat-box p { margin: 15px 0 0; font-size: 2rem; font-weight: bold; color: var(--text); }
-        .stat-box.highlight p { color: var(--accent); }
-
-        /* Tables & Cards */
-        .card { background: var(--card); border-radius: 12px; padding: 25px; margin-bottom: 25px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; color: var(--accent); }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { text-align: left; padding: 12px; background: rgba(15, 23, 42, 0.5); color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
-        td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.95rem; }
-        
-        /* Forms & Buttons */
-        .flex-form { display: flex; gap: 10px; flex-wrap: wrap; }
-        input { background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 8px; flex: 1; min-width: 200px; }
-        button { cursor: pointer; border: none; border-radius: 8px; padding: 12px 20px; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; }
-        
-        .btn-pay { background: var(--success); color: white; width: 100%; }
-        .btn-pay:hover { background: #16a34a; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
-        .btn-bonus { background: var(--primary); color: white; }
-        .btn-bonus:hover { background: #2563eb; }
-        .btn-refresh { background: var(--accent); color: #000; margin-bottom: 20px; }
-
-        .pix-tag { background: #000; color: var(--success); padding: 6px 10px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; border: 1px solid #166534; }
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --accent: #facc15; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; }
+        .stats { display: flex; gap: 15px; margin-bottom: 20px; }
+        .box { flex: 1; background: #0f172a; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid var(--primary); }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
+        th { color: var(--accent); font-size: 12px; text-transform: uppercase; }
+        input { padding: 10px; border-radius: 5px; border: 1px solid #334155; background: #0f172a; color: white; width: 100%; box-sizing: border-box; }
+        button { cursor: pointer; padding: 10px; border-radius: 5px; border: none; font-weight: bold; background: var(--primary); color: white; }
+        .btn-pago { background: #22c55e; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="loginSection" style="max-width: 400px; margin: 100px auto;" class="card">
-        <h2 style="text-align: center; margin-bottom: 25px;">Bingo Admin Login</h2>
-        <input type="password" id="masterKey" placeholder="Senha Administrativa" style="width: 100%; box-sizing: border-box; margin-bottom: 20px;">
-        <button onclick="acessarPainel()" class="btn-bonus" style="width: 100%;">Entrar no Sistema</button>
+    <div id="loginArea" style="max-width:300px; margin: 100px auto; text-align: center;">
+        <h2 style="color:var(--accent)">Bingo Admin</h2>
+        <input type="password" id="pass" placeholder="Senha Master"><br><br>
+        <button onclick="logar()" style="width:100%">Acessar Painel</button>
     </div>
 
-    <div id="adminDashboard" class="hidden">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 style="margin: 0;">👑 Sistema de Gerência</h1>
-            <button onclick="atualizarDados()" class="btn-refresh">🔄 Atualizar Dados</button>
+    <div id="dash" class="hidden">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <h1>👑 Gerência Real</h1>
+            <button onclick="carregarDados()">🔄 Atualizar Agora</button>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-box">
-                <h4>Lucro Bruto</h4>
-                <p id="labelLucro">R$ 0,00</p>
-            </div>
-            <div class="stat-box highlight">
-                <h4>Acumulado Atual</h4>
-                <p id="labelPremio">R$ 0,00</p>
-            </div>
-            <div class="stat-box" style="border-bottom-color: #8b5cf6;">
-                <h4>Total de Vendas</h4>
-                <p id="labelVendas">R$ 0,00</p>
-            </div>
+        <div class="stats">
+            <div class="box"><h4>Lucro</h4><p id="txtL">R$ 0,00</p></div>
+            <div class="box"><h4>Prêmio Acumulado</h4><p id="txtP" style="color:var(--accent)">R$ 0,00</p></div>
+            <div class="box"><h4>Vendas</h4><p id="txtV">R$ 0,00</p></div>
         </div>
 
         <div class="card">
-            <h3 style="color: var(--danger);">💸 Solicitações de Saque (Pendentes)</h3>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Jogador</th>
-                            <th>Valor</th>
-                            <th>Chave PIX</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="listaSaques">
-                        <tr><td colspan="4" style="text-align: center; color: #64748b;">Nenhum pedido no momento...</td></tr>
+            <h3>👥 Usuários Cadastrados</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Saldo Total</th>
+                        <th>Saldo p/ Saque</th>
+                        <th>ID (Copiar)</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaUsers">
                     </tbody>
-                </table>
-            </div>
+            </table>
         </div>
 
         <div class="card">
-            <h3>🎁 Crédito Manual (Bônus)</h3>
-            <div class="flex-form">
-                <input type="text" id="playerID" placeholder="Cole o ID do Jogador aqui">
-                <input type="number" id="bonusValue" placeholder="Valor R$">
-                <button onclick="enviarCredito()" class="btn-bonus">Confirmar Crédito</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>👥 Gestão de Jogadores</h3>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nome do Usuário</th>
-                            <th>Saldo Atual</th>
-                            <th>ID do Sistema</th>
-                        </tr>
-                    </thead>
-                    <tbody id="listaPlayers"></tbody>
-                </table>
-            </div>
+            <h3>💸 Saques Pendentes</h3>
+            <table>
+                <tbody id="tabelaSaques"></tbody>
+            </table>
         </div>
     </div>
-</div>
 
 <script>
-    let currentPass = "";
+    let masterPass = "";
 
-    function acessarPainel() {
-        currentPass = document.getElementById('masterKey').value;
-        atualizarDados();
+    function logar() {
+        masterPass = document.getElementById('pass').value;
+        carregarDados();
     }
 
-    async function atualizarDados() {
+    async function carregarDados() {
         try {
             const res = await fetch('/admin/dashboard', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ senha: currentPass })
+                body: JSON.stringify({ senha: masterPass })
             });
 
-            if (!res.ok) return alert("Senha de administrador incorreta!");
+            if (!res.ok) return alert("Senha Incorreta!");
 
             const data = await res.json();
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('adminDashboard').classList.remove('hidden');
+            document.getElementById('loginArea').classList.add('hidden');
+            document.getElementById('dash').classList.remove('hidden');
 
-            // Atualiza os contadores
-            document.getElementById('labelLucro').innerText = `R$ ${data.lucroRodada.toFixed(2)}`;
-            document.getElementById('labelPremio').innerText = `R$ ${data.premioAcumulado.toFixed(2)}`;
-            document.getElementById('labelVendas').innerText = `R$ ${data.vendasRodada.toFixed(2)}`;
+            // Atualiza Stats
+            document.getElementById('txtL').innerText = "R$ " + (data.lucroRodada || 0).toFixed(2);
+            document.getElementById('txtP').innerText = "R$ " + (data.premioAcumulado || 0).toFixed(2);
+            document.getElementById('txtV').innerText = "R$ " + (data.vendasRodada || 0).toFixed(2);
 
-            // Tabela de Saques
-            const containerSaques = document.getElementById('listaSaques');
-            if (data.saques.length === 0) {
-                containerSaques.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 30px;">✅ Todos os saques foram pagos!</td></tr>`;
+            // ATUALIZA TABELA DE USUÁRIOS
+            const listaU = document.getElementById('tabelaUsers');
+            listaU.innerHTML = ""; // Limpa antes de carregar
+            
+            if (data.jogadores && data.jogadores.length > 0) {
+                data.jogadores.forEach(u => {
+                    const row = `<tr>
+                        <td><b>${u.name}</b></td>
+                        <td>R$ ${u.saldo.toFixed(2)}</td>
+                        <td style="color:var(--accent)">R$ ${(u.valorLiberadoSaque || 0).toFixed(2)}</td>
+                        <td style="font-family:monospace; font-size:10px; cursor:pointer" onclick="copy('${u._id}')">${u._id}</td>
+                    </tr>`;
+                    listaU.innerHTML += row;
+                });
             } else {
-                containerSaques.innerHTML = data.saques.map(s => `
-                    <tr>
-                        <td><b>${s.userName}</b></td>
-                        <td style="color: var(--success); font-weight: bold;">R$ ${s.valor.toFixed(2)}</td>
-                        <td><span class="pix-tag">${s.chavePix}</span></td>
-                        <td><button onclick="marcarComoPago('${s._id}')" class="btn-pay">BAIXA / PAGO</button></td>
-                    </tr>
-                `).join('');
+                listaU.innerHTML = "<tr><td colspan='4'>Nenhum usuário logado ou cadastrado.</td></tr>";
             }
 
-            // Tabela de Jogadores
-            document.getElementById('listaPlayers').innerHTML = data.jogadores.map(u => `
+            // ATUALIZA TABELA DE SAQUES
+            const listaS = document.getElementById('tabelaSaques');
+            listaS.innerHTML = data.saques.length ? data.saques.map(s => `
                 <tr>
-                    <td>${u.name}</td>
-                    <td>R$ ${u.saldo.toFixed(2)}</td>
-                    <td style="font-family: monospace; color: var(--primary); cursor: pointer;" onclick="copyID('${u._id}')">
-                        ${u._id} <small>(clique p/ copiar)</small>
-                    </td>
+                    <td>${s.userName}</td>
+                    <td><b>R$ ${s.valor.toFixed(2)}</b></td>
+                    <td style="background:#000; color:#22c55e; padding:5px">${s.chavePix}</td>
+                    <td><button class="btn-pago" onclick="pago('${s._id}')">MARCAR PAGO</button></td>
                 </tr>
-            `).join('');
+            `).join('') : "<tr><td>Nenhum saque pendente.</td></tr>";
 
-        } catch (err) {
-            console.error(err);
-            alert("Erro ao carregar dados do servidor.");
+        } catch (e) {
+            alert("Erro ao conectar. O servidor está ligado?");
         }
     }
 
-    async function marcarComoPago(saqueId) {
-        if (!confirm("Confirmar que o PIX foi enviado? O registro sumirá da lista.")) return;
-
-        const res = await fetch('/admin/finalizar-saque', {
+    async function pago(id) {
+        if(!confirm("Confirmar pagamento?")) return;
+        await fetch('/admin/finalizar-saque', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ senha: currentPass, saqueId: saqueId })
+            body: JSON.stringify({ senha: masterPass, saqueId: id })
         });
-
-        if (res.ok) {
-            alert("Pagamento processado com sucesso!");
-            atualizarDados();
-        } else {
-            alert("Erro ao processar baixa de pagamento.");
-        }
+        carregarDados();
     }
 
-    async function enviarCredito() {
-        const userId = document.getElementById('playerID').value;
-        const valor = document.getElementById('bonusValue').value;
-        
-        if (!userId || !valor) return alert("Preencha o ID e o Valor!");
-
-        const res = await fetch('/admin/dar-bonus', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ senha: currentPass, userId, valor })
-        });
-
-        if (res.ok) {
-            alert("Saldo creditado com sucesso!");
-            document.getElementById('bonusValue').value = "";
-            atualizarDados();
-        }
-    }
-
-    function copyID(id) {
+    function copy(id) {
         navigator.clipboard.writeText(id);
-        document.getElementById('playerID').value = id;
-        alert("ID copiado para o campo de bônus!");
+        alert("ID Copiado!");
     }
 </script>
 </body>
