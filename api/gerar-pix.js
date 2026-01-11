@@ -1,10 +1,20 @@
-// Rota para Gerar PIX da Rifa e salvar no MongoDB
-app.post('/api/rifa/pagar', async (req, res) => {
-    const { valor, numeros, email } = req.body; // numeros é um array ex: [1234, 5566]
-
+// Rota para buscar números ocupados (milhar)
+app.get('/api/rifa/ocupados', async (req, res) => {
     try {
-        // 1. Criar o pagamento no Mercado Pago
-        const mpResponse = await fetch('https://api.mercadopago.com/v1/payments', {
+        const db = client.db("seu_banco_de_dados"); // Use o nome do seu banco do Bingo
+        const ocupados = await db.collection("rifas").find({ status: 'pago' }).toArray();
+        const listaNumeros = ocupados.map(doc => doc.milhar);
+        res.json(listaNumeros);
+    } catch (err) {
+        res.status(500).json([]);
+    }
+});
+
+// Rota para gerar pagamento e reservar milhar
+app.post('/api/gerar-pix', async (req, res) => {
+    const { valor, numeros } = req.body;
+    try {
+        const response = await fetch('https://api.mercadopago.com/v1/payments', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
@@ -12,27 +22,26 @@ app.post('/api/rifa/pagar', async (req, res) => {
             },
             body: JSON.stringify({
                 transaction_amount: parseFloat(valor),
-                description: `Rifa Milhar: ${numeros.join(', ')}`,
+                description: `Rifa Milhar: ${numeros}`,
                 payment_method_id: 'pix',
-                payer: { email: email || 'cliente@rifa.com' }
+                payer: { email: 'pagador@rifa.com' }
             })
         });
+        const data = await response.json();
 
-        const data = await mpResponse.json();
-
-        // 2. Se o PIX foi gerado, salvar os números no MongoDB
-        if (data.status === 'pending') {
-            const db = client.db("seu_banco_de_dados"); // Use a mesma config do seu Bingo
-            await db.collection("rifas").insertMany(numeros.map(n => ({
-                milhar: n.toString().padStart(4, '0'),
-                pagamentoId: data.id,
+        // Se o PIX foi gerado, salvamos como pendente no banco
+        if (data.point_of_interaction) {
+            const db = client.db("seu_banco_de_dados");
+            const milharArray = numeros.split(',');
+            await db.collection("rifas").insertMany(milharArray.map(n => ({
+                milhar: n,
                 status: 'pendente',
-                dataCriacao: new Date()
+                pagamentoId: data.id,
+                createdAt: new Date()
             })));
         }
-
         res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Erro ao processar' });
     }
 });
