@@ -44,7 +44,7 @@ let lucroGeralAcumulado = 0;
 let jogo = { 
     bolas: [], 
     fase: "acumulando", 
-    premioAcumulado: 0, // AJUSTADO PARA 0
+    premioAcumulado: 0, 
     tempoSegundos: 300, 
     ganhador: null, 
     valorGanho: 0,
@@ -115,15 +115,7 @@ async function reiniciarGlobal() {
     }
 }
 
-// ROTA FINALIZAR SAQUE (PARA REMOVER DO BANCO)
-app.post('/admin/finalizar-saque', async (req, res) => {
-    const { senha, saqueId } = req.body;
-    if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha incorreta" });
-    try {
-        await Withdrawal.findByIdAndDelete(saqueId);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: "Erro ao deletar" }); }
-});
+// --- ROTAS DO GERENTE ---
 
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
@@ -131,34 +123,19 @@ app.post('/admin/dashboard', async (req, res) => {
         const jogadores = await User.find({}, 'name email saldo valorLiberadoSaque _id');
         const saques = await Withdrawal.find().sort({ data: -1 });
         const lucroDestaRodada = jogo.totalVendasRodada - jogo.premioAcumulado;
-        res.json({ 
-            jogadores, 
-            saques, 
-            lucroRodada: lucroDestaRodada, 
-            vendasRodada: jogo.totalVendasRodada,
-            premioAcumulado: jogo.premioAcumulado 
-        });
+        res.json({ jogadores, saques, lucroRodada: lucroDestaRodada, lucroTotalHistorico: lucroGeralAcumulado + lucroDestaRodada, vendasRodada: jogo.totalVendasRodada });
     } catch (e) { res.status(500).send(); }
 });
 
-// ROTA SOLICITAR SAQUE COM TRAVA PARA NÃO FICAR NEGATIVO
-app.post('/solicitar-saque', async (req, res) => {
-    const { userId, valor, chavePix } = req.body;
-    const v = parseFloat(valor);
+app.post('/admin/finalizar-saque', async (req, res) => {
+    const { senha, saqueId } = req.body;
+    if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha incorreta" });
     try {
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ error: "Usuário não encontrado" });
-        if (v > user.valorLiberadoSaque || v > user.saldo) {
-            return res.status(400).json({ error: "Saldo insuficiente!" });
-        }
-        await User.findByIdAndUpdate(userId, { $inc: { saldo: -v, valorLiberadoSaque: -v } });
-        const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
-        await pedido.save();
+        await Withdrawal.findByIdAndDelete(saqueId); 
         res.json({ success: true });
-    } catch (e) { res.status(500).send(); }
+    } catch (e) { res.status(500).json({ error: "Erro ao deletar" }); }
 });
 
-// (As outras rotas de Login, Cadastro, Pix e Bônus permanecem iguais)
 app.post('/admin/dar-bonus', async (req, res) => {
     const { senha, userId, valor } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).send();
@@ -166,6 +143,81 @@ app.post('/admin/dar-bonus', async (req, res) => {
         await User.findByIdAndUpdate(userId, { $inc: { saldo: parseFloat(valor) } });
         res.json({ success: true });
     } catch (e) { res.status(500).send(); }
+});
+
+// --- ROTA TOP 10 (REVISADA) ---
+app.get('/top-ganhadores', async (req, res) => {
+    try {
+        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } })
+            .sort({ valorLiberadoSaque: -1 })
+            .limit(10)
+            .select('name valorLiberadoSaque');
+        res.json(tops);
+    } catch (e) { res.status(500).send(); }
+});
+
+// --- ROTAS DO JOGADOR ---
+
+app.post('/solicitar-saque', async (req, res) => {
+    const { userId, valor, chavePix } = req.body;
+    const v = parseFloat(valor);
+    try {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).send();
+        if (v > user.valorLiberadoSaque) {
+            return res.status(400).json({ error: `Valor não liberado. Você possui apenas R$ ${user.valorLiberadoSaque.toFixed(2)} disponíveis para saque.` });
+        }
+        if (v < 20) return res.status(400).json({ error: "O valor mínimo para saque é R$ 20,00" });
+        if (user.saldo >= v) {
+            await User.findByIdAndUpdate(userId, { $inc: { saldo: -v, valorLiberadoSaque: -v } });
+            const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
+            await pedido.save();
+            res.json({ success: true });
+        } else { res.status(400).json({ error: "Saldo insuficiente." }); }
+    } catch (e) { res.status(500).send(); }
+});
+
+app.post('/comprar-com-saldo', async (req, res) => {
+    const { usuarioId, quantidade } = req.body;
+    const custo = parseInt(quantidade) * 2;
+    const user = await User.findById(usuarioId);
+    if (user && user.saldo >= custo) {
+        let novas = [];
+        for (let i = 0; i < quantidade; i++) {
+            let n = [];
+            while(n.length < 8) {
+                let num = Math.floor(Math.random()*50)+1;
+                if(!n.includes(num)) n.push(num);
+            }
+            novas.push(n.sort((a,b)=>a-b));
+        }
+        const campoAlvo = (jogo.fase === "acumulando") ? "cartelas" : "cartelasProximaRodada";
+        await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { [campoAlvo]: { $each: novas } } });
+        if (jogo.fase === "acumulando") {
+            jogo.premioAcumulado += (custo * 0.25);
+            jogo.totalVendasRodada += custo; 
+        }
+        res.json({ success: true });
+    } else res.status(400).send();
+});
+
+app.post('/gerar-pix', async (req, res) => {
+    const { userId, valor } = req.body;
+    try {
+        const response = await payment.create({ body: { transaction_amount: parseFloat(valor), description: "Bingo Real", payment_method_id: "pix", payer: { email: "cliente@bingoreal.com" }, external_reference: userId.toString() } });
+        res.json({ qr_code: response.point_of_interaction.transaction_data.qr_code, qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64 });
+    } catch (e) { res.status(500).json(e); }
+});
+
+app.post('/webhook', async (req, res) => {
+    const { action, data } = req.body;
+    if (action === "payment.updated") {
+        try {
+            const p = await payment.get({ id: data.id });
+            if (p.status === "approved") await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
+        } catch (e) {}
+    }
+    res.sendStatus(200);
 });
 
 app.post('/login', async (req, res) => {
