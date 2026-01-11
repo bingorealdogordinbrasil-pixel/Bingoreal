@@ -13,7 +13,6 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 const SENHA_ADMIN = "bingo2026"; 
 
-// --- CONFIGURAÇÃO MERCADO PAGO ---
 const client = new MercadoPagoConfig({ 
     accessToken: 'APP_USR-2683158167668377-123121-4666c74759e0eac123b8c4c23bf7c1f1-485513741' 
 });
@@ -42,18 +41,8 @@ const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
 }));
 
 let lucroGeralAcumulado = 0; 
-// Inicia o prêmio do servidor em 100 na primeira execução
-let jogo = { 
-    bolas: [], 
-    fase: "acumulando", 
-    premioAcumulado: 100, 
-    tempoSegundos: 300, 
-    ganhador: null, 
-    valorGanho: 0,
-    totalVendasRodada: 0 
-};
+let jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
 
-// LOOP DO JOGO
 setInterval(async () => {
     if (jogo.fase === "acumulando") {
         if (jogo.tempoSegundos > 0) jogo.tempoSegundos--;
@@ -72,10 +61,8 @@ async function realizarSorteio() {
     let bola;
     do { bola = Math.floor(Math.random() * 50) + 1; } while (jogo.bolas.includes(bola));
     jogo.bolas.push(bola);
-
     const todosUsuarios = await User.find({ "cartelas.0": { $exists: true } });
     let ganhadoresNestaRodada = [];
-
     for (let u of todosUsuarios) {
         for (let c of u.cartelas) {
             if (c.every(num => jogo.bolas.includes(num))) {
@@ -84,13 +71,10 @@ async function realizarSorteio() {
             }
         }
     }
-
     if (ganhadoresNestaRodada.length > 0) {
         const valorPorGanhador = jogo.premioAcumulado / ganhadoresNestaRodada.length;
         for (let g of ganhadoresNestaRodada) {
-            await User.findByIdAndUpdate(g._id, { 
-                $inc: { saldo: valorPorGanhador, valorLiberadoSaque: valorPorGanhador } 
-            });
+            await User.findByIdAndUpdate(g._id, { $inc: { saldo: valorPorGanhador, valorLiberadoSaque: valorPorGanhador } });
         }
         lucroGeralAcumulado += (jogo.totalVendasRodada - jogo.premioAcumulado);
         jogo.ganhador = ganhadoresNestaRodada.length > 1 ? `${ganhadoresNestaRodada.length} Ganhadores` : ganhadoresNestaRodada[0].name;
@@ -107,20 +91,9 @@ async function reiniciarGlobal() {
         let vendasIniciais = 0;
         for (let u of usersComEspera) {
             vendasIniciais += (u.cartelasProximaRodada.length * 2);
-            await User.findByIdAndUpdate(u._id, {
-                $set: { cartelas: u.cartelasProximaRodada, cartelasProximaRodada: [] }
-            });
+            await User.findByIdAndUpdate(u._id, { $set: { cartelas: u.cartelasProximaRodada, cartelasProximaRodada: [] } });
         }
-        // AQUI ESTÁ A MUDANÇA: Premio inicial de 100 + cartelas vendidas
-        jogo = { 
-            bolas: [], 
-            fase: "acumulando", 
-            premioAcumulado: 100 + (vendasIniciais * 0.25), 
-            tempoSegundos: 300, 
-            ganhador: null, 
-            valorGanho: 0, 
-            totalVendasRodada: vendasIniciais 
-        };
+        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100 + (vendasIniciais * 0.25), tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: vendasIniciais };
     } catch (e) {
         jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
     }
@@ -133,11 +106,12 @@ app.post('/admin/dashboard', async (req, res) => {
         const jogadores = await User.find({}, 'name email saldo valorLiberadoSaque _id');
         const saques = await Withdrawal.find().sort({ data: -1 });
         const lucroDestaRodada = jogo.totalVendasRodada - jogo.premioAcumulado;
-        res.json({ jogadores, saques, lucroRodada: lucroDestaRodada, lucroTotalHistorico: lucroGeralAcumulado + lucroDestaRodada, vendasRodada: jogo.totalVendasRodada });
+        res.json({ jogadores, saques, lucroRodada: lucroDestaRodada, lucroTotalHistorico: lucroGeralAcumulado + lucroDestaRodada });
     } catch (e) { res.status(500).send(); }
 });
 
-app.post('/admin/finalizar-saque', async (req, res) => {
+// ROTA DE DELETAR (NOME SUMIR)
+app.post('/admin/excluir-saque', async (req, res) => {
     const { senha, saqueId } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha incorreta" });
     try {
@@ -155,14 +129,7 @@ app.post('/admin/dar-bonus', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-app.get('/top-ganhadores', async (req, res) => {
-    try {
-        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } }).sort({ valorLiberadoSaque: -1 }).limit(10).select('name valorLiberadoSaque');
-        res.json(tops);
-    } catch (e) { res.status(500).send(); }
-});
-
-// --- ROTAS DE DEPÓSITO E SAQUE ---
+// --- OUTRAS ROTAS ---
 app.post('/gerar-pix', async (req, res) => {
     const { userId, valor } = req.body;
     try {
@@ -182,45 +149,6 @@ app.post('/webhook', async (req, res) => {
     res.sendStatus(200);
 });
 
-app.post('/solicitar-saque', async (req, res) => {
-    const { userId, valor, chavePix } = req.body;
-    const v = parseFloat(valor);
-    try {
-        const user = await User.findById(userId);
-        if (v > user.valorLiberadoSaque) return res.status(400).json({ error: "Valor não liberado." });
-        if (user.saldo >= v) {
-            await User.findByIdAndUpdate(userId, { $inc: { saldo: -v, valorLiberadoSaque: -v } });
-            const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
-            await pedido.save();
-            res.json({ success: true });
-        } else { res.status(400).send(); }
-    } catch (e) { res.status(500).send(); }
-});
-
-app.post('/comprar-com-saldo', async (req, res) => {
-    const { usuarioId, quantidade } = req.body;
-    const custo = parseInt(quantidade) * 2;
-    const user = await User.findById(usuarioId);
-    if (user && user.saldo >= custo) {
-        let novas = [];
-        for (let i = 0; i < quantidade; i++) {
-            let n = [];
-            while(n.length < 8) {
-                let num = Math.floor(Math.random()*50)+1;
-                if(!n.includes(num)) n.push(num);
-            }
-            novas.push(n.sort((a,b)=>a-b));
-        }
-        const campoAlvo = (jogo.fase === "acumulando") ? "cartelas" : "cartelasProximaRodada";
-        await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { [campoAlvo]: { $each: novas } } });
-        if (jogo.fase === "acumulando") {
-            jogo.premioAcumulado += (custo * 0.25);
-            jogo.totalVendasRodada += custo; 
-        }
-        res.json({ success: true });
-    } else res.status(400).send();
-});
-
 app.post('/login', async (req, res) => {
     const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
     u ? res.json(u) : res.status(401).send();
@@ -233,6 +161,13 @@ app.post('/register', async (req, res) => {
 app.get('/game-status', (req, res) => res.json(jogo));
 app.get('/user-data/:id', async (req, res) => {
     try { const u = await User.findById(req.params.id); res.json(u); } catch (e) { res.status(404).send(); }
+});
+
+app.get('/top-ganhadores', async (req, res) => {
+    try {
+        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } }).sort({ valorLiberadoSaque: -1 }).limit(10).select('name valorLiberadoSaque');
+        res.json(tops);
+    } catch (e) { res.status(500).send(); }
 });
 
 app.listen(process.env.PORT || 10000);
