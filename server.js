@@ -115,7 +115,7 @@ async function reiniciarGlobal() {
     }
 }
 
-// --- ROTAS DO GERENTE (MOTOR DE EXCLUSÃO REFORÇADO) ---
+// --- ROTAS DO GERENTE (MOTOR DE EXCLUSÃO CORRIGIDO) ---
 
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
@@ -127,25 +127,27 @@ app.post('/admin/dashboard', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
+// MOTOR DE EXCLUSÃO REFORÇADO PARA DELETAR DE QUALQUER JEITO
 app.post('/admin/finalizar-saque', async (req, res) => {
     const { senha, saqueId } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha incorreta" });
     
     try {
-        // Tenta converter o ID para o formato do MongoDB para garantir a exclusão
-        const idConvertido = new mongoose.Types.ObjectId(saqueId);
-        const resultado = await Withdrawal.deleteOne({ _id: idConvertido });
+        // Tenta deletar usando o ID direto (método mais rápido)
+        const del1 = await Withdrawal.deleteOne({ _id: saqueId });
         
-        if (resultado.deletedCount > 0) {
-            res.json({ success: true });
+        if (del1.deletedCount > 0) {
+            return res.json({ success: true });
         } else {
-            // Se não deletou com o objeto, tenta deletar como string pura por garantia
-            const resultado2 = await Withdrawal.deleteOne({ _id: saqueId });
-            if (resultado2.deletedCount > 0) return res.json({ success: true });
-            res.status(404).json({ error: "Saque não encontrado" });
+            // Se falhar, tenta converter o ID em objeto do banco de dados (método seguro)
+            const idObj = new mongoose.Types.ObjectId(saqueId);
+            const del2 = await Withdrawal.deleteOne({ _id: idObj });
+            if (del2.deletedCount > 0) return res.json({ success: true });
+            
+            res.status(404).json({ error: "Pedido não encontrado no banco." });
         }
     } catch (e) { 
-        res.status(500).json({ error: "Erro no motor do banco de dados" }); 
+        res.status(500).json({ error: "Erro no motor do servidor" }); 
     }
 });
 
@@ -241,3 +243,4 @@ app.get('/user-data/:id', async (req, res) => {
 });
 
 app.listen(process.env.PORT || 10000);
+                                                       
