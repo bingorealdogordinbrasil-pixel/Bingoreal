@@ -44,7 +44,7 @@ let lucroGeralAcumulado = 0;
 let jogo = { 
     bolas: [], 
     fase: "acumulando", 
-    premioAcumulado: 100, 
+    premioAcumulado: 100, // ALTERADO: Começa com 100
     tempoSegundos: 300, 
     ganhador: null, 
     valorGanho: 0,
@@ -109,13 +109,14 @@ async function reiniciarGlobal() {
                 $set: { cartelas: u.cartelasProximaRodada, cartelasProximaRodada: [] }
             });
         }
+        // ALTERADO: Adicionado 100 de base no reinício
         jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100 + (vendasIniciais * 0.25), tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: vendasIniciais };
     } catch (e) {
         jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
     }
 }
 
-// --- ROTAS DO GERENTE (MOTOR DE EXCLUSÃO CORRIGIDO) ---
+// --- ROTAS DO GERENTE ---
 
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
@@ -127,28 +128,15 @@ app.post('/admin/dashboard', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// MOTOR DE EXCLUSÃO REFORÇADO PARA DELETAR DE QUALQUER JEITO
+// MOTOR DE EXCLUSÃO CORRIGIDO
 app.post('/admin/finalizar-saque', async (req, res) => {
     const { senha, saqueId } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha incorreta" });
-    
     try {
-        // Tenta deletar usando o ID direto (método mais rápido)
-        const del1 = await Withdrawal.deleteOne({ _id: saqueId });
-        
-        if (del1.deletedCount > 0) {
-            return res.json({ success: true });
-        } else {
-            // Se falhar, tenta converter o ID em objeto do banco de dados (método seguro)
-            const idObj = new mongoose.Types.ObjectId(saqueId);
-            const del2 = await Withdrawal.deleteOne({ _id: idObj });
-            if (del2.deletedCount > 0) return res.json({ success: true });
-            
-            res.status(404).json({ error: "Pedido não encontrado no banco." });
-        }
-    } catch (e) { 
-        res.status(500).json({ error: "Erro no motor do servidor" }); 
-    }
+        // Usa deleteOne com conversão de ID para garantir que remova do banco
+        await Withdrawal.deleteOne({ _id: new mongoose.Types.ObjectId(saqueId) }); 
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: "Erro ao deletar" }); }
 });
 
 app.post('/admin/dar-bonus', async (req, res) => {
@@ -162,7 +150,10 @@ app.post('/admin/dar-bonus', async (req, res) => {
 
 app.get('/top-ganhadores', async (req, res) => {
     try {
-        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } }).sort({ valorLiberadoSaque: -1 }).limit(10).select('name valorLiberadoSaque');
+        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } })
+            .sort({ valorLiberadoSaque: -1 })
+            .limit(10)
+            .select('name valorLiberadoSaque');
         res.json(tops);
     } catch (e) { res.status(500).send(); }
 });
@@ -175,7 +166,10 @@ app.post('/solicitar-saque', async (req, res) => {
     try {
         const user = await User.findById(userId);
         if (!user) return res.status(404).send();
-        if (v > user.valorLiberadoSaque) return res.status(400).json({ error: "Valor não liberado." });
+        if (v > user.valorLiberadoSaque) {
+            return res.status(400).json({ error: `Valor não liberado. Você possui apenas R$ ${user.valorLiberadoSaque.toFixed(2)} disponíveis para saque.` });
+        }
+        if (v < 20) return res.status(400).json({ error: "O valor mínimo para saque é R$ 20,00" });
         if (user.saldo >= v) {
             await User.findByIdAndUpdate(userId, { $inc: { saldo: -v, valorLiberadoSaque: -v } });
             const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
@@ -243,4 +237,3 @@ app.get('/user-data/:id', async (req, res) => {
 });
 
 app.listen(process.env.PORT || 10000);
-                                                       
