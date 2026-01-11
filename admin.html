@@ -1,240 +1,212 @@
-const express = require('express'); 
-const mongoose = require('mongoose');
-const cors = require('cors');
-const path = require('path');
-const { MercadoPagoConfig, Payment } = require('mercadopago');
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerência Bingo Real</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --primary: #3b82f6;
+            --success: #22c55e;
+            --accent: #facc15;
+            --danger: #ef4444;
+        }
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
+        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        
+        input { background: #0f172a; color: white; border: 1px solid #334155; padding: 12px; border-radius: 8px; margin: 5px; outline: none; }
+        input:focus { border-color: var(--primary); }
+        
+        button { cursor: pointer; font-weight: bold; padding: 12px 20px; border-radius: 8px; border: none; transition: 0.2s; }
+        .btn-green { background: var(--success); color: white; }
+        .btn-blue { background: var(--primary); color: white; }
+        .btn-refresh { background: var(--accent); color: #000; }
+        button:hover { transform: translateY(-2px); filter: brightness(1.1); }
 
-app.use(express.static(path.join(__dirname, '/')));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #1a2233; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 14px; text-align: left; border-bottom: 1px solid #334155; }
+        th { background: #0a0f1d; color: var(--accent); font-size: 0.9em; text-transform: uppercase; }
+        
+        .hidden { display: none; }
+        .copy-id { cursor: pointer; color: var(--primary); font-family: monospace; font-weight: bold; }
+        .saque-row:hover { background: #243147; }
+        
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; background: rgba(34, 197, 94, 0.2); color: var(--success); }
+    </style>
+</head>
+<body>
 
-const SENHA_ADMIN = "bingo2026"; 
+    <div id="login" style="max-width: 400px; margin: 100px auto; text-align: center;">
+        <h2 style="color: var(--accent);">👑 Bingo Gerente</h2>
+        <div class="card">
+            <input type="password" id="senha" placeholder="Senha do Administrador" style="width: 80%;">
+            <br><br>
+            <button onclick="carregarDash()" class="btn-green" style="width: 90%;">Entrar no Painel</button>
+        </div>
+    </div>
 
-const client = new MercadoPagoConfig({ 
-    accessToken: 'APP_USR-2683158167668377-123121-4666c74759e0eac123b8c4c23bf7c1f1-485513741' 
-});
-const payment = new Payment(client);
+    <div id="dash" class="hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>🛠️ Painel de Controle</h1>
+            <button class="btn-refresh" onclick="carregarDash()">🔄 ATUALIZAR DADOS</button>
+        </div>
 
-const mongoURI = "mongodb+srv://admin:bingoreal123@cluster0.ap7q4ev.mongodb.net/?retryWrites=true&w=majority";
-mongoose.connect(mongoURI);
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="card">
+                <h3 style="margin-top:0">💰 Lucro desta Rodada</h3>
+                <h2 id="lucroRodada" style="color: var(--success); font-size: 2.5em; margin: 10px 0;">R$ 0,00</h2>
+                <p style="color: #94a3b8;">Saldo Total em Banco: R$ <span id="banco" style="color:white">0,00</span></p>
+            </div>
 
-const User = mongoose.model('User', new mongoose.Schema({
-    name: { type: String, required: true }, 
-    email: { type: String, unique: true, required: true }, 
-    senha: { type: String, required: true },
-    saldo: { type: Number, default: 0 }, 
-    cartelas: { type: Array, default: [] },
-    cartelasProximaRodada: { type: Array, default: [] }, 
-    valorLiberadoSaque: { type: Number, default: 0 } 
-}));
+            <div class="card">
+                <h3 style="margin-top:0">🎁 Adicionar Bônus</h3>
+                <input type="text" id="targetId" placeholder="ID do Jogador" style="width: 40%;">
+                <input type="number" id="valorBonus" placeholder="Valor R$" style="width: 30%;">
+                <button onclick="darBonus()" class="btn-blue">Enviar</button>
+                <p style="font-size: 11px; color: #64748b; margin-top: 10px;">Clique no ID de um jogador na lista para selecionar.</p>
+            </div>
+        </div>
 
-const Withdrawal = mongoose.model('Withdrawal', new mongoose.Schema({
-    userId: mongoose.Schema.Types.ObjectId,
-    userName: String,
-    valor: Number,
-    chavePix: String,
-    status: { type: String, default: 'pendente' },
-    data: { type: Date, default: Date.now }
-}));
+        <div class="card">
+            <h3 style="color: var(--danger);">💸 Saques Pendentes (Aguardando PIX)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome do Jogador</th>
+                        <th>Valor do Prêmio</th>
+                        <th>Chave PIX</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="listaSaques">
+                    <tr><td colspan="4">Carregando saques...</td></tr>
+                </tbody>
+            </table>
+        </div>
 
-let lucroGeralAcumulado = 0; 
-let jogo = { 
-    bolas: [], 
-    fase: "acumulando", 
-    premioAcumulado: 100, // ALTERADO: Começa com 100
-    tempoSegundos: 300, 
-    ganhador: null, 
-    valorGanho: 0,
-    totalVendasRodada: 0 
-};
+        <div class="card">
+            <h3>👥 Todos os Jogadores</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID (Clique p/ copiar)</th>
+                        <th>Nome</th>
+                        <th>Saldo Jogo</th>
+                        <th>Ganhos (Saque)</th>
+                    </tr>
+                </thead>
+                <tbody id="listaUser">
+                    <tr><td colspan="4">Carregando lista...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-// LOOP DO JOGO
-setInterval(async () => {
-    if (jogo.fase === "acumulando") {
-        if (jogo.tempoSegundos > 0) jogo.tempoSegundos--;
-        else jogo.fase = "sorteio";
-    } else if (jogo.fase === "sorteio") {
-        if (Math.abs(jogo.tempoSegundos) % 3 === 0) await realizarSorteio();
-        jogo.tempoSegundos--;
-    } else if (jogo.fase === "finalizado") {
-        if (Math.abs(jogo.tempoSegundos) >= 15) await reiniciarGlobal();
-        jogo.tempoSegundos++;
-    }
-}, 1000);
+    <script>
+        let pass = "";
+        const API = ""; // Deixe vazio se o HTML estiver na mesma pasta do server.js
 
-async function realizarSorteio() {
-    if (jogo.bolas.length >= 50 || jogo.fase !== "sorteio") return;
-    let bola;
-    do { bola = Math.floor(Math.random() * 50) + 1; } while (jogo.bolas.includes(bola));
-    jogo.bolas.push(bola);
+        async function carregarDash() {
+            const inputSenha = document.getElementById('senha').value;
+            if(inputSenha) pass = inputSenha;
 
-    const todosUsuarios = await User.find({ "cartelas.0": { $exists: true } });
-    let ganhadoresNestaRodada = [];
+            try {
+                const res = await fetch('/admin/dashboard', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ senha: pass })
+                });
 
-    for (let u of todosUsuarios) {
-        for (let c of u.cartelas) {
-            if (c.every(num => jogo.bolas.includes(num))) {
-                ganhadoresNestaRodada.push(u);
-                break; 
+                if(!res.ok) {
+                    alert("Acesso Negado. Verifique a senha.");
+                    return;
+                }
+
+                const data = await res.json();
+                
+                document.getElementById('login').classList.add('hidden');
+                document.getElementById('dash').classList.remove('hidden');
+
+                // Atualizar Números
+                document.getElementById('lucroRodada').innerText = "R$ " + (data.lucroRodada || 0).toFixed(2);
+                document.getElementById('banco').innerText = (data.lucroTotalHistorico || 0).toFixed(2);
+
+                // Listar Jogadores
+                const listaUser = document.getElementById('listaUser');
+                listaUser.innerHTML = data.jogadores.map(j => `
+                    <tr>
+                        <td class="copy-id" onclick="selecionarUsuario('${j._id}')">${j._id.substring(18)}...</td>
+                        <td>${j.name}</td>
+                        <td style="color:#22c55e">R$ ${j.saldo.toFixed(2)}</td>
+                        <td style="color:#facc15">R$ ${(j.valorLiberadoSaque || 0).toFixed(2)}</td>
+                    </tr>
+                `).join('');
+
+                // Listar Saques (Aqui estava o erro do sumiço)
+                const listaSaques = document.getElementById('listaSaques');
+                if (data.saques && data.saques.length > 0) {
+                    listaSaques.innerHTML = data.saques.map(s => `
+                        <tr class="saque-row">
+                            <td><b>${s.userName}</b></td>
+                            <td style="color: var(--success); font-weight:bold;">R$ ${s.valor.toFixed(2)}</td>
+                            <td><code style="background:#000; padding:4px; border-radius:4px;">${s.chavePix}</code></td>
+                            <td>
+                                <button onclick="pagar('${s._id}')" style="background:var(--success); font-size:12px;">✅ MARCAR PAGO</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    listaSaques.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#64748b;'>Nenhum saque pendente no momento.</td></tr>";
+                }
+
+            } catch (err) {
+                alert("Servidor Offline");
             }
         }
-    }
 
-    if (ganhadoresNestaRodada.length > 0) {
-        const valorPorGanhador = jogo.premioAcumulado / ganhadoresNestaRodada.length;
-        for (let g of ganhadoresNestaRodada) {
-            await User.findByIdAndUpdate(g._id, { 
-                $inc: { saldo: valorPorGanhador, valorLiberadoSaque: valorPorGanhador } 
+        function selecionarUsuario(id) {
+            document.getElementById('targetId').value = id;
+        }
+
+        async function darBonus() {
+            const userId = document.getElementById('targetId').value;
+            const valor = document.getElementById('valorBonus').value;
+            if(!userId || !valor) return alert("Selecione o usuário e o valor.");
+
+            const res = await fetch('/admin/dar-bonus', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ senha: pass, userId, valor })
             });
-        }
-        lucroGeralAcumulado += (jogo.totalVendasRodada - jogo.premioAcumulado);
-        jogo.ganhador = ganhadoresNestaRodada.length > 1 ? `${ganhadoresNestaRodada.length} Ganhadores` : ganhadoresNestaRodada[0].name;
-        jogo.valorGanho = valorPorGanhador;
-        jogo.fase = "finalizado";
-        jogo.tempoSegundos = 0;
-        await User.updateMany({}, { $set: { cartelas: [] } });
-    }
-}
 
-async function reiniciarGlobal() {
-    try {
-        const usersComEspera = await User.find({ "cartelasProximaRodada.0": { $exists: true } });
-        let vendasIniciais = 0;
-        for (let u of usersComEspera) {
-            vendasIniciais += (u.cartelasProximaRodada.length * 2);
-            await User.findByIdAndUpdate(u._id, {
-                $set: { cartelas: u.cartelasProximaRodada, cartelasProximaRodada: [] }
-            });
-        }
-        // ALTERADO: Adicionado 100 de base no reinício
-        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100 + (vendasIniciais * 0.25), tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: vendasIniciais };
-    } catch (e) {
-        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
-    }
-}
-
-// --- ROTAS DO GERENTE ---
-
-app.post('/admin/dashboard', async (req, res) => {
-    if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
-    try {
-        const jogadores = await User.find({}, 'name email saldo valorLiberadoSaque _id');
-        const saques = await Withdrawal.find().sort({ data: -1 });
-        const lucroDestaRodada = jogo.totalVendasRodada - jogo.premioAcumulado;
-        res.json({ jogadores, saques, lucroRodada: lucroDestaRodada, lucroTotalHistorico: lucroGeralAcumulado + lucroDestaRodada, vendasRodada: jogo.totalVendasRodada });
-    } catch (e) { res.status(500).send(); }
-});
-
-// MOTOR DE EXCLUSÃO CORRIGIDO
-app.post('/admin/finalizar-saque', async (req, res) => {
-    const { senha, saqueId } = req.body;
-    if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha incorreta" });
-    try {
-        // Usa deleteOne com conversão de ID para garantir que remova do banco
-        await Withdrawal.deleteOne({ _id: new mongoose.Types.ObjectId(saqueId) }); 
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: "Erro ao deletar" }); }
-});
-
-app.post('/admin/dar-bonus', async (req, res) => {
-    const { senha, userId, valor } = req.body;
-    if (senha !== SENHA_ADMIN) return res.status(401).send();
-    try {
-        await User.findByIdAndUpdate(userId, { $inc: { saldo: parseFloat(valor) } });
-        res.json({ success: true });
-    } catch (e) { res.status(500).send(); }
-});
-
-app.get('/top-ganhadores', async (req, res) => {
-    try {
-        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } })
-            .sort({ valorLiberadoSaque: -1 })
-            .limit(10)
-            .select('name valorLiberadoSaque');
-        res.json(tops);
-    } catch (e) { res.status(500).send(); }
-});
-
-// --- ROTAS DO JOGADOR ---
-
-app.post('/solicitar-saque', async (req, res) => {
-    const { userId, valor, chavePix } = req.body;
-    const v = parseFloat(valor);
-    try {
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).send();
-        if (v > user.valorLiberadoSaque) {
-            return res.status(400).json({ error: `Valor não liberado. Você possui apenas R$ ${user.valorLiberadoSaque.toFixed(2)} disponíveis para saque.` });
-        }
-        if (v < 20) return res.status(400).json({ error: "O valor mínimo para saque é R$ 20,00" });
-        if (user.saldo >= v) {
-            await User.findByIdAndUpdate(userId, { $inc: { saldo: -v, valorLiberadoSaque: -v } });
-            const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
-            await pedido.save();
-            res.json({ success: true });
-        } else { res.status(400).json({ error: "Saldo insuficiente." }); }
-    } catch (e) { res.status(500).send(); }
-});
-
-app.post('/comprar-com-saldo', async (req, res) => {
-    const { usuarioId, quantidade } = req.body;
-    const custo = parseInt(quantidade) * 2;
-    const user = await User.findById(usuarioId);
-    if (user && user.saldo >= custo) {
-        let novas = [];
-        for (let i = 0; i < quantidade; i++) {
-            let n = [];
-            while(n.length < 8) {
-                let num = Math.floor(Math.random()*50)+1;
-                if(!n.includes(num)) n.push(num);
+            if(res.ok) {
+                alert("Bônus creditado!");
+                carregarDash();
+            } else {
+                alert("Erro ao enviar bônus.");
             }
-            novas.push(n.sort((a,b)=>a-b));
         }
-        const campoAlvo = (jogo.fase === "acumulando") ? "cartelas" : "cartelasProximaRodada";
-        await User.findByIdAndUpdate(usuarioId, { $inc: { saldo: -custo }, $push: { [campoAlvo]: { $each: novas } } });
-        if (jogo.fase === "acumulando") {
-            jogo.premioAcumulado += (custo * 0.25);
-            jogo.totalVendasRodada += custo; 
+
+        // FUNÇÃO PARA SUMIR DA LISTA
+        async function pagar(id) {
+            if(!confirm("Você confirma que já fez o PIX? O nome sumirá da lista agora.")) return;
+
+            const res = await fetch('/admin/excluir-saque', { // ROTA IGUAL AO SERVER.JS
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ senha: pass, saqueId: id })
+            });
+
+            if(res.ok) {
+                alert("Sucesso! Registro removido.");
+                carregarDash(); // RECARREGA A TELA E O NOME SOME
+            } else {
+                alert("Erro ao deletar registro.");
+            }
         }
-        res.json({ success: true });
-    } else res.status(400).send();
-});
-
-app.post('/gerar-pix', async (req, res) => {
-    const { userId, valor } = req.body;
-    try {
-        const response = await payment.create({ body: { transaction_amount: parseFloat(valor), description: "Bingo Real", payment_method_id: "pix", payer: { email: "cliente@bingoreal.com" }, external_reference: userId.toString() } });
-        res.json({ qr_code: response.point_of_interaction.transaction_data.qr_code, qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64 });
-    } catch (e) { res.status(500).json(e); }
-});
-
-app.post('/webhook', async (req, res) => {
-    const { action, data } = req.body;
-    if (action === "payment.updated") {
-        try {
-            const p = await payment.get({ id: data.id });
-            if (p.status === "approved") await User.findByIdAndUpdate(p.external_reference, { $inc: { saldo: p.transaction_amount } });
-        } catch (e) {}
-    }
-    res.sendStatus(200);
-});
-
-app.post('/login', async (req, res) => {
-    const u = await User.findOne({ email: req.body.email, senha: req.body.senha });
-    u ? res.json(u) : res.status(401).send();
-});
-
-app.post('/register', async (req, res) => {
-    try { const u = new User(req.body); await u.save(); res.json(u); } catch(e) { res.status(400).send(); }
-});
-
-app.get('/game-status', (req, res) => res.json(jogo));
-app.get('/user-data/:id', async (req, res) => {
-    try { const u = await User.findById(req.params.id); res.json(u); } catch (e) { res.status(404).send(); }
-});
-
-app.listen(process.env.PORT || 10000);
-            
+    </script>
+</body>
+</html>
