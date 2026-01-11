@@ -115,7 +115,7 @@ async function reiniciarGlobal() {
     }
 }
 
-// --- ROTAS DO GERENTE ---
+// --- ROTAS DO GERENTE (MOTOR DE EXCLUSÃO REFORÇADO) ---
 
 app.post('/admin/dashboard', async (req, res) => {
     if (req.body.senha !== SENHA_ADMIN) return res.status(401).send();
@@ -130,10 +130,23 @@ app.post('/admin/dashboard', async (req, res) => {
 app.post('/admin/finalizar-saque', async (req, res) => {
     const { senha, saqueId } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha incorreta" });
+    
     try {
-        await Withdrawal.findByIdAndDelete(saqueId); 
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: "Erro ao deletar" }); }
+        // Tenta converter o ID para o formato do MongoDB para garantir a exclusão
+        const idConvertido = new mongoose.Types.ObjectId(saqueId);
+        const resultado = await Withdrawal.deleteOne({ _id: idConvertido });
+        
+        if (resultado.deletedCount > 0) {
+            res.json({ success: true });
+        } else {
+            // Se não deletou com o objeto, tenta deletar como string pura por garantia
+            const resultado2 = await Withdrawal.deleteOne({ _id: saqueId });
+            if (resultado2.deletedCount > 0) return res.json({ success: true });
+            res.status(404).json({ error: "Saque não encontrado" });
+        }
+    } catch (e) { 
+        res.status(500).json({ error: "Erro no motor do banco de dados" }); 
+    }
 });
 
 app.post('/admin/dar-bonus', async (req, res) => {
@@ -160,10 +173,7 @@ app.post('/solicitar-saque', async (req, res) => {
     try {
         const user = await User.findById(userId);
         if (!user) return res.status(404).send();
-        if (v > user.valorLiberadoSaque) {
-            return res.status(400).json({ error: `Valor não liberado. Você possui apenas R$ ${user.valorLiberadoSaque.toFixed(2)} disponíveis para saque.` });
-        }
-        if (v < 20) return res.status(400).json({ error: "O valor mínimo para saque é R$ 20,00" });
+        if (v > user.valorLiberadoSaque) return res.status(400).json({ error: "Valor não liberado." });
         if (user.saldo >= v) {
             await User.findByIdAndUpdate(userId, { $inc: { saldo: -v, valorLiberadoSaque: -v } });
             const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
