@@ -2,65 +2,96 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Gerente Bingo Real</title>
+    <title>Gerente Bingo Real - COMPLETO</title>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --accent: #facc15; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --accent: #facc15; --success: #22c55e; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
+        .container { max-width: 1000px; margin: 0 auto; }
         .card { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; }
         .stats { display: flex; gap: 15px; margin-bottom: 20px; }
-        .box { flex: 1; background: #0f172a; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid var(--primary); }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
-        th { color: var(--accent); font-size: 12px; text-transform: uppercase; }
-        input { padding: 10px; border-radius: 5px; border: 1px solid #334155; background: #0f172a; color: white; width: 100%; box-sizing: border-box; }
-        button { cursor: pointer; padding: 10px; border-radius: 5px; border: none; font-weight: bold; background: var(--primary); color: white; }
-        .btn-pago { background: #22c55e; }
+        .box { flex: 1; background: #0f172a; padding: 15px; border-radius: 10px; text-align: center; border-left: 4px solid var(--primary); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; font-size: 14px; }
+        th { color: var(--accent); text-transform: uppercase; font-size: 11px; }
+        input { padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        button { cursor: pointer; padding: 12px; border-radius: 6px; border: none; font-weight: bold; background: var(--primary); color: white; transition: 0.2s; }
+        button:hover { opacity: 0.8; }
+        .btn-pago { background: var(--success); }
+        .btn-bonus { background: #8b5cf6; width: 100%; margin-top: 5px; }
         .hidden { display: none; }
+        .id-copy { font-family: monospace; color: var(--primary); cursor: pointer; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-    <div id="loginArea" style="max-width:300px; margin: 100px auto; text-align: center;">
+<div class="container">
+    <div id="loginArea" style="max-width:350px; margin: 100px auto; text-align: center;" class="card">
         <h2 style="color:var(--accent)">Bingo Admin</h2>
-        <input type="password" id="pass" placeholder="Senha Master"><br><br>
+        <input type="password" id="pass" placeholder="Senha Master">
         <button onclick="logar()" style="width:100%">Acessar Painel</button>
     </div>
 
     <div id="dash" class="hidden">
-        <div style="display:flex; justify-content: space-between; align-items: center;">
-            <h1>👑 Gerência Real</h1>
-            <button onclick="carregarDados()">🔄 Atualizar Agora</button>
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>👑 Painel de Controle</h1>
+            <button onclick="carregarDados()" style="background:var(--accent); color:#000">🔄 Atualizar Tudo</button>
         </div>
 
         <div class="stats">
             <div class="box"><h4>Lucro</h4><p id="txtL">R$ 0,00</p></div>
-            <div class="box"><h4>Prêmio Acumulado</h4><p id="txtP" style="color:var(--accent)">R$ 0,00</p></div>
-            <div class="box"><h4>Vendas</h4><p id="txtV">R$ 0,00</p></div>
+            <div class="box" style="border-left-color: var(--accent);"><h4>Prêmio</h4><p id="txtP" style="color:var(--accent)">R$ 0,00</p></div>
+            <div class="box" style="border-left-color: #8b5cf6;"><h4>Vendas</h4><p id="txtV">R$ 0,00</p></div>
+        </div>
+
+        <div class="card" style="border: 2px solid #8b5cf6;">
+            <h3 style="margin-top:0; color:#8b5cf6;">🎁 ADICIONAR BÔNUS / SALDO</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div style="flex: 2;">
+                    <label style="font-size: 11px; color:#94a3b8">ID do Usuário (clique no ID na lista abaixo para colar aqui)</label>
+                    <input type="text" id="bnId" placeholder="ID do Jogador">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 11px; color:#94a3b8">Valor R$</label>
+                    <input type="number" id="bnValor" placeholder="Ex: 50.00">
+                </div>
+            </div>
+            <button onclick="enviarBonus()" class="btn-bonus">CREDITAR SALDO AGORA</button>
         </div>
 
         <div class="card">
-            <h3>👥 Usuários Cadastrados</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>Saldo Total</th>
-                        <th>Saldo p/ Saque</th>
-                        <th>ID (Copiar)</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelaUsers">
-                    </tbody>
-            </table>
+            <h3>👥 Usuários no Sistema</h3>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Saldo Atual</th>
+                            <th>ID (Clique para usar no bônus)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaUsers"></tbody>
+                </table>
+            </div>
         </div>
 
         <div class="card">
-            <h3>💸 Saques Pendentes</h3>
-            <table>
-                <tbody id="tabelaSaques"></tbody>
-            </table>
+            <h3 style="color:var(--success)">💸 Saques Pendentes</h3>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Valor</th>
+                            <th>Chave PIX</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaSaques"></tbody>
+                </table>
+            </div>
         </div>
     </div>
+</div>
 
 <script>
     let masterPass = "";
@@ -84,47 +115,57 @@
             document.getElementById('loginArea').classList.add('hidden');
             document.getElementById('dash').classList.remove('hidden');
 
-            // Atualiza Stats
             document.getElementById('txtL').innerText = "R$ " + (data.lucroRodada || 0).toFixed(2);
             document.getElementById('txtP').innerText = "R$ " + (data.premioAcumulado || 0).toFixed(2);
             document.getElementById('txtV').innerText = "R$ " + (data.vendasRodada || 0).toFixed(2);
 
-            // ATUALIZA TABELA DE USUÁRIOS
+            // Tabela Users
             const listaU = document.getElementById('tabelaUsers');
-            listaU.innerHTML = ""; // Limpa antes de carregar
-            
-            if (data.jogadores && data.jogadores.length > 0) {
-                data.jogadores.forEach(u => {
-                    const row = `<tr>
-                        <td><b>${u.name}</b></td>
-                        <td>R$ ${u.saldo.toFixed(2)}</td>
-                        <td style="color:var(--accent)">R$ ${(u.valorLiberadoSaque || 0).toFixed(2)}</td>
-                        <td style="font-family:monospace; font-size:10px; cursor:pointer" onclick="copy('${u._id}')">${u._id}</td>
-                    </tr>`;
-                    listaU.innerHTML += row;
-                });
-            } else {
-                listaU.innerHTML = "<tr><td colspan='4'>Nenhum usuário logado ou cadastrado.</td></tr>";
-            }
+            listaU.innerHTML = data.jogadores.map(u => `
+                <tr>
+                    <td><b>${u.name}</b></td>
+                    <td>R$ ${u.saldo.toFixed(2)}</td>
+                    <td><span class="id-copy" onclick="preencherBonus('${u._id}')">${u._id}</span></td>
+                </tr>
+            `).join('') || "<tr><td colspan='3'>Nenhum usuário.</td></tr>";
 
-            // ATUALIZA TABELA DE SAQUES
+            // Tabela Saques
             const listaS = document.getElementById('tabelaSaques');
-            listaS.innerHTML = data.saques.length ? data.saques.map(s => `
+            listaS.innerHTML = data.saques.map(s => `
                 <tr>
                     <td>${s.userName}</td>
-                    <td><b>R$ ${s.valor.toFixed(2)}</b></td>
-                    <td style="background:#000; color:#22c55e; padding:5px">${s.chavePix}</td>
-                    <td><button class="btn-pago" onclick="pago('${s._id}')">MARCAR PAGO</button></td>
+                    <td style="color:var(--success)"><b>R$ ${s.valor.toFixed(2)}</b></td>
+                    <td style="font-family:monospace">${s.chavePix}</td>
+                    <td><button class="btn-pago" onclick="pago('${s._id}')">PAGO</button></td>
                 </tr>
-            `).join('') : "<tr><td>Nenhum saque pendente.</td></tr>";
+            `).join('') || "<tr><td colspan='4'>Nenhum saque pendente.</td></tr>";
 
-        } catch (e) {
-            alert("Erro ao conectar. O servidor está ligado?");
+        } catch (e) { alert("Erro de conexão!"); }
+    }
+
+    async function enviarBonus() {
+        const userId = document.getElementById('bnId').value;
+        const valor = document.getElementById('bnValor').value;
+        
+        if(!userId || !valor) return alert("Preencha o ID e o Valor!");
+
+        const res = await fetch('/admin/dar-bonus', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ senha: masterPass, userId, valor })
+        });
+
+        if (res.ok) {
+            alert("Bônus Creditado!");
+            document.getElementById('bnValor').value = "";
+            carregarDados();
+        } else {
+            alert("Erro ao enviar bônus.");
         }
     }
 
     async function pago(id) {
-        if(!confirm("Confirmar pagamento?")) return;
+        if(!confirm("Já fez o PIX? O nome sumirá da lista.")) return;
         await fetch('/admin/finalizar-saque', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -133,9 +174,9 @@
         carregarDados();
     }
 
-    function copy(id) {
-        navigator.clipboard.writeText(id);
-        alert("ID Copiado!");
+    function preencherBonus(id) {
+        document.getElementById('bnId').value = id;
+        window.scrollTo(0, 100); // Sobe um pouco a tela
     }
 </script>
 </body>
