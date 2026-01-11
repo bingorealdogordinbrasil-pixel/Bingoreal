@@ -44,7 +44,7 @@ let lucroGeralAcumulado = 0;
 let jogo = { 
     bolas: [], 
     fase: "acumulando", 
-    premioAcumulado: 100, // COMEÇA EM 100
+    premioAcumulado: 100, // Alterado para 100
     tempoSegundos: 300, 
     ganhador: null, 
     valorGanho: 0,
@@ -109,10 +109,9 @@ async function reiniciarGlobal() {
                 $set: { cartelas: u.cartelasProximaRodada, cartelasProximaRodada: [] }
             });
         }
-        // VOLTA PARA 100 + VENDAS
-        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100 + (vendasIniciais * 0.25), tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: vendasIniciais };
+        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100 + (vendasIniciais * 0.25), tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: vendasIniciais }; // Alterado para 100
     } catch (e) {
-        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
+        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 }; // Alterado para 100
     }
 }
 
@@ -128,7 +127,6 @@ app.post('/admin/dashboard', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// ROTA PARA DELETAR O SAQUE E SUMIR DA LISTA
 app.post('/admin/finalizar-saque', async (req, res) => {
     const { senha, saqueId } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha incorreta" });
@@ -147,7 +145,7 @@ app.post('/admin/dar-bonus', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// --- ROTA TOP 10 ---
+// --- ROTA TOP 10 (REVISADA) ---
 app.get('/top-ganhadores', async (req, res) => {
     try {
         const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } })
