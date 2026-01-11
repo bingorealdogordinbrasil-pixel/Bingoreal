@@ -44,13 +44,14 @@ let lucroGeralAcumulado = 0;
 let jogo = { 
     bolas: [], 
     fase: "acumulando", 
-    premioAcumulado: 100, // Prêmio inicial em 100
+    premioAcumulado: 0, 
     tempoSegundos: 300, 
     ganhador: null, 
     valorGanho: 0,
     totalVendasRodada: 0 
 };
 
+// LOOP DO JOGO
 setInterval(async () => {
     if (jogo.fase === "acumulando") {
         if (jogo.tempoSegundos > 0) jogo.tempoSegundos--;
@@ -108,9 +109,9 @@ async function reiniciarGlobal() {
                 $set: { cartelas: u.cartelasProximaRodada, cartelasProximaRodada: [] }
             });
         }
-        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100 + (vendasIniciais * 0.25), tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: vendasIniciais };
+        jogo = { bolas: [], fase: "acumulando", premioAcumulado: (vendasIniciais * 0.25), tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: vendasIniciais };
     } catch (e) {
-        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 100, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
+        jogo = { bolas: [], fase: "acumulando", premioAcumulado: 0, tempoSegundos: 300, ganhador: null, valorGanho: 0, totalVendasRodada: 0 };
     }
 }
 
@@ -126,12 +127,11 @@ app.post('/admin/dashboard', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
-// ROTA PARA DELETAR O SAQUE - GARANTE QUE SUMA DA LISTA
 app.post('/admin/finalizar-saque', async (req, res) => {
     const { senha, saqueId } = req.body;
     if (senha !== SENHA_ADMIN) return res.status(401).json({ error: "Senha incorreta" });
     try {
-        await Withdrawal.findByIdAndRemove(saqueId); // Remove do banco
+        await Withdrawal.findByIdAndDelete(saqueId); 
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: "Erro ao deletar" }); }
 });
@@ -145,9 +145,13 @@ app.post('/admin/dar-bonus', async (req, res) => {
     } catch (e) { res.status(500).send(); }
 });
 
+// --- ROTA TOP 10 (REVISADA) ---
 app.get('/top-ganhadores', async (req, res) => {
     try {
-        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } }).sort({ valorLiberadoSaque: -1 }).limit(10).select('name valorLiberadoSaque');
+        const tops = await User.find({ valorLiberadoSaque: { $gt: 0 } })
+            .sort({ valorLiberadoSaque: -1 })
+            .limit(10)
+            .select('name valorLiberadoSaque');
         res.json(tops);
     } catch (e) { res.status(500).send(); }
 });
@@ -161,8 +165,9 @@ app.post('/solicitar-saque', async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).send();
         if (v > user.valorLiberadoSaque) {
-            return res.status(400).json({ error: "Valor não liberado." });
+            return res.status(400).json({ error: `Valor não liberado. Você possui apenas R$ ${user.valorLiberadoSaque.toFixed(2)} disponíveis para saque.` });
         }
+        if (v < 20) return res.status(400).json({ error: "O valor mínimo para saque é R$ 20,00" });
         if (user.saldo >= v) {
             await User.findByIdAndUpdate(userId, { $inc: { saldo: -v, valorLiberadoSaque: -v } });
             const pedido = new Withdrawal({ userId: user._id, userName: user.name, valor: v, chavePix: chavePix });
